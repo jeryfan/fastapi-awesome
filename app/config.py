@@ -5,12 +5,36 @@ class Settings(BaseSettings):
     """
     配置类
     """
-    MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = "123456"
-    MYSQL_HOST: str = "localhost"
+    MYSQL_USER: str = "fastapi"
+    MYSQL_PASSWORD: str = "fastapi"
+    MYSQL_HOST: str = "mysql"
     MYSQL_PORT: int = 3306
-    MYSQL_DB: str = "fastapi_db"
+    MYSQL_DATABASE: str = "fastapi"
     MYSQL_CHARSET: str = "utf8mb4"
+    ACCESS_TOKEN_EXPIRE_MINUTES:int = 3600
+    SECRET_KEY:str = "sSIf8zhJFU68jo_-s73KzxWo3CHEr4vHSJdSjxb2Sio"
+    ALGORITHM:str = "HS256"
+
+    GITHUB_CLIENT_ID:str=""
+    GITHUB_CLIENT_SECRET:str=""
+
+    GOOGLE_CLIENT_ID:str=""
+    GOOGLE_CLIENT_SECRET:str=""
+
+    WECHAT_APP_ID:str=""
+    WECHAT_APP_SECRET:str=""
+
+    FEISHU_APP_ID:str=""
+    FEISHU_APP_SECRET:str=""
+
+    PGUSER:str="fastapi"
+    POSTGRES_PASSWORD:str="fastapi"
+    POSTGRES_DB:str="fastapi"
+    POSTGRES_HOST:str="db"
+    POSTGRES_PORT:int=5432
 
     class Config:
         env_file = ".env"
+
+
+settings = Settings()

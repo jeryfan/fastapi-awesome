@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.lib.db import get_db
+from app.models.db import get_db
 from app.schemas.user import UserCreate, User
 from app.schemas.token import Token, TokenData
 from app.crud.user import user_crud

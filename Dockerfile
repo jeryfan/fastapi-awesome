@@ -6,13 +6,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl wget gcc l
 
 RUN pipx install uv
 ENV PATH="/root/.local/bin:$PATH"
-COPY ./ /
 
-WORKDIR /
+WORKDIR /workspace
+
+COPY pyproject.toml uv.lock ./
+COPY app/ ./app/
 
 RUN uv sync
+ENV PYTHON=/workspace/.venv/bin/python3
 
-
-CMD ["/.venv/bin/python","-m","uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY docker/entrypoint.sh ./
+RUN chmod +x ./entrypoint*.sh
+ENTRYPOINT ["./entrypoint.sh"]
 
 

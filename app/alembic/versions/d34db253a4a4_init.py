@@ -1,19 +1,20 @@
-"""init tables
+"""init
 
-Revision ID: d39248d013a4
-Revises: d6de4795788b
-Create Date: 2025-06-18 16:37:21.931236
+Revision ID: d34db253a4a4
+Revises: 
+Create Date: 2025-06-21 04:02:05.610997
 
 """
 from typing import Sequence, Union
-import app
+
 from alembic import op
 import sqlalchemy as sa
+import app
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'd39248d013a4'
-down_revision: Union[str, Sequence[str], None] = 'd6de4795788b'
+revision: str = 'd34db253a4a4'
+down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -26,20 +27,22 @@ def upgrade() -> None:
     sa.Column('name', sa.String(length=255), nullable=True),
     sa.Column('email', sa.String(length=255), nullable=True),
     sa.Column('password', sa.String(length=255), nullable=True),
+    sa.Column('status', sa.Enum('ACTIVE', 'DISABLED', name='userstatus'), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
     op.create_index(op.f('ix_users_name'), 'users', ['name'], unique=False)
+    op.create_index(op.f('ix_users_status'), 'users', ['status'], unique=False)
     op.create_table('oauth_accounts',
     sa.Column('id', app.models.types.StringUUID(), nullable=False),
-    sa.Column('user_id', app.models.types.StringUUID(), nullable=True),
-    sa.Column('provider', sa.String(length=50), nullable=True),
-    sa.Column('provider_user_id', sa.String(length=255), nullable=True),
+    sa.Column('user_id', app.models.types.StringUUID(), nullable=False),
+    sa.Column('provider', sa.String(length=50), nullable=False),
+    sa.Column('provider_user_id', sa.String(length=255), nullable=False),
     sa.Column('access_token', sa.String(length=255), nullable=True),
     sa.Column('refresh_token', sa.String(length=255), nullable=True),
-    sa.Column('expires_at', sa.Integer(), nullable=True),
+    sa.Column('expires_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -56,6 +59,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_oauth_accounts_provider_user_id'), table_name='oauth_accounts')
     op.drop_index(op.f('ix_oauth_accounts_provider'), table_name='oauth_accounts')
     op.drop_table('oauth_accounts')
+    op.drop_index(op.f('ix_users_status'), table_name='users')
     op.drop_index(op.f('ix_users_name'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')

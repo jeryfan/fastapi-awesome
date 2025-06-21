@@ -70,7 +70,10 @@ services:
     networks:
       - one
     volumes:
-      - ../app/:/app/
+      - ../app/:/workspace/app/
+      - ./entrypoint.sh:/workspace/entrypoint.sh
+    environment:
+      - AUTO_MIGRATE=${AUTO_MIGRATE:-false}
 
 networks:
   one:

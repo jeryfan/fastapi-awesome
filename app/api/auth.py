@@ -65,7 +65,7 @@ async def register_user(user_in: UserCreate, db: Annotated[AsyncSession, Depends
     new_user = await user_crud.create_user(db, user_in)
     return new_user
 
-@router.post("/token", response_model=Token)
+@router.post("/auth/token", response_model=Token)
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()], # 使用 OAuth2PasswordRequestForm 获取用户名和密码
     db: Annotated[AsyncSession, Depends(get_db)]
@@ -75,7 +75,7 @@ async def login_for_access_token(
     """
     user = await user_crud.get_by_email(db, form_data.username) # form_data.username 实际上是邮箱
     # 验证用户是否存在、是否有密码、密码是否正确
-    if not user or not user.hashed_password or not verify_password(form_data.password, user.hashed_password):
+    if not user or not user.password or not verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="邮箱或密码不正确",

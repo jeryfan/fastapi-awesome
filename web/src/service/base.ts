@@ -205,9 +205,9 @@ const baseFetch = <T>(
   ]) as Promise<T>
 }
 
-export const upload = (options: any, isPublicAPI?: boolean, url?: string, searchParams?: string): Promise<any> => {
-  const urlPrefix = isPublicAPI ? PUBLIC_API_PREFIX : API_PREFIX
-  const token = getAccessToken(isPublicAPI)
+export const upload = (options: any, url?: string, searchParams?: string): Promise<any> => {
+  const urlPrefix = API_PREFIX
+  const token = getAccessToken()
   const defaultOptions = {
     method: 'POST',
     url: (url ? `${urlPrefix}${url}` : `${urlPrefix}/files/upload`) + (searchParams || ''),
@@ -272,10 +272,9 @@ export const request = async<T>(url: string, options = {}, otherOptions?: IOther
         return Promise.reject(err)
       }
       const {
-        isPublicAPI = false,
         silent,
       } = otherOptionsForBaseFetch
-      if (isPublicAPI && code === 'unauthorized') {
+      if (code === 'unauthorized') {
         removeAccessToken()
         globalThis.location.reload()
         return Promise.reject(err)

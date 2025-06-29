@@ -89,8 +89,6 @@ services:
   worker:
     image: app
     container_name: worker
-    ports:
-      - 8000:8000
     networks:
       - one
     volumes:

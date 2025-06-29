@@ -10,22 +10,23 @@ from datetime import datetime
 from app.models.db import Base
 from .types import StringUUID
 from app.models.base import TimestampMixin
+import uuid
 
 
 class UploadFile(TimestampMixin, Base):
     __tablename__ = "upload_files"
 
     id: Mapped[str] = mapped_column(
-        StringUUID, primary_key=True, server_default=text("uuid_generate_v4()")
+        StringUUID, primary_key=True, index=True, default=uuid.uuid4
     )
     storage_type: Mapped[str] = Column(String(255), nullable=False)
     key: Mapped[str] = Column(String(255), nullable=False)
     name: Mapped[str] = Column(String(255), nullable=False)
     size: Mapped[int] = Column(Integer, nullable=False)
-    extension: Mapped[str] = Column(String(255), nullable=False)
-    mime_type: Mapped[str] = Column(String(255), nullable=True)
+    extension: Mapped[str] = Column(String(255), nullable=False, index=True)
+    mime_type: Mapped[str] = Column(String(255), nullable=True, index=True)
 
-    created_by: Mapped[str] = Column(StringUUID, nullable=False)
+    created_by: Mapped[str] = Column(StringUUID, nullable=False, index=True)
     source_url: Mapped[str] = mapped_column(TEXT, default="")
 
     def __init__(

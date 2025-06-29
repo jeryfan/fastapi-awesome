@@ -18,13 +18,30 @@ function start_serve(){
     done
 }
 
+function start_worker(){
+    while true; do
+        celery -A app.celery_app worker --loglevel=info --logfile=- &
+        celery -A app.celery_app beat --loglevel=info --logfile=- &
+    done
+}
+
 
 if [[ "${AUTO_MIGRATE}" == "true" ]]; then
   echo "Running migrations"
   migrate
 fi
 
+case "${SERVICE_ROLE}" in
+  "server")
+    echo "Starting server"
+    start_serve &
+    ;;
+  "worker")
+    echo "Starting worker"
+    celery -A app.worker worker --loglevel=info
+    ;;
+esac
 
-start_serve &
+
 
 wait

@@ -53,7 +53,17 @@ services:
     volumes:
       - ./postgres/data:/var/lib/postgresql/data
     healthcheck:
-      test: [ 'CMD', 'pg_isready', '-h', 'db', '-U', '${PGUSER:-fastapi}', '-d', '${POSTGRES_DB:-fastapi}' ]
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "-h",
+          "db",
+          "-U",
+          "${PGUSER:-fastapi}",
+          "-d",
+          "${POSTGRES_DB:-fastapi}",
+        ]
       interval: 1s
       timeout: 3s
       retries: 60
@@ -74,6 +84,21 @@ services:
       - ./entrypoint.sh:/workspace/entrypoint.sh
     environment:
       - AUTO_MIGRATE=${AUTO_MIGRATE:-false}
+      - SERVICE_ROLE=server
+
+  worker:
+    image: app
+    container_name: app
+    ports:
+      - 8000:8000
+    networks:
+      - one
+    volumes:
+      - ../app/:/workspace/app/
+      - ./entrypoint.sh:/workspace/entrypoint.sh
+    environment:
+      - AUTO_MIGRATE=${AUTO_MIGRATE:-false}
+      - SERVICE_ROLE=worker
 
 networks:
   one:

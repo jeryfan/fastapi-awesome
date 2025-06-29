@@ -7,8 +7,8 @@ source /workspace/.venv/bin/activate
 function migrate(){
     echo "start migrate"
     alembic -c /workspace/app/alembic.ini upgrade head
-    alembic -c /workspace/app/alembic.ini revision --autogenerate -m "auto update"
-    alembic -c /workspace/app/alembic.ini upgrade head
+    # alembic -c /workspace/app/alembic.ini revision --autogenerate -m "auto update"
+    # alembic -c /workspace/app/alembic.ini upgrade head
     echo "end migrate"
 }
 

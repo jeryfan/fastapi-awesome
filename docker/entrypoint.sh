@@ -22,6 +22,8 @@ function start_worker(){
     while true; do
         celery -A app.celery_app worker --loglevel=info --logfile=- &
         celery -A app.celery_app beat --loglevel=info --logfile=- &
+        
+        wait -n
     done
 }
 

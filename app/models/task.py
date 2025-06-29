@@ -1,7 +1,7 @@
 from app.models.db import Base
 from app.models.base import TimestampMixin
 import enum
-from sqlalchemy import Enum, text, Column, String
+from sqlalchemy import Enum, text, Column, String, Text
 from sqlalchemy.orm import mapped_column, Mapped
 from .types import StringUUID
 
@@ -24,5 +24,5 @@ class Task(TimestampMixin, Base):
     status: Mapped[TaskStatus] = mapped_column(
         Enum(TaskStatus), nullable=False, index=True, default=TaskStatus.PENDING
     )
-    error: Mapped[str] = mapped_column(text, nullable=True)
+    error: Mapped[str] = mapped_column(Text, nullable=True)
     created_by: Mapped[str] = Column(StringUUID, nullable=False)

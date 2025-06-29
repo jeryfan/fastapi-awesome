@@ -2,21 +2,14 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
-    Boolean,
-    ForeignKey,
-    func,
-    DateTime,
     text,
     TEXT,
 )
-from sqlalchemy.orm import relationship, mapped_column, Mapped
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import mapped_column, Mapped
 from datetime import datetime
-import uuid
 from app.models.db import Base
 from .types import StringUUID
 from app.models.base import TimestampMixin
-import enum
 
 
 class UploadFile(TimestampMixin, Base):

@@ -17,7 +17,7 @@ class TaskStatus(str, enum.Enum):
 class Task(TimestampMixin, Base):
     __tablename__ = "tasks"
 
-    id: Mapped[str] = Column(
+    id: Mapped[str] = mapped_column(
         StringUUID, primary_key=True, server_default=text("uuid_generate_v4()")
     )
     task_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)

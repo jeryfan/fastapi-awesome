@@ -15,7 +15,7 @@ from app.models.base import TimestampMixin
 class UploadFile(TimestampMixin, Base):
     __tablename__ = "upload_files"
 
-    id: Mapped[str] = Column(
+    id: Mapped[str] = mapped_column(
         StringUUID, primary_key=True, server_default=text("uuid_generate_v4()")
     )
     storage_type: Mapped[str] = Column(String(255), nullable=False)

@@ -38,7 +38,7 @@ case "${SERVICE_ROLE}" in
     ;;
   "worker")
     echo "Starting worker"
-    celery -A app.worker worker --loglevel=info
+    start_worker &
     ;;
 esac
 

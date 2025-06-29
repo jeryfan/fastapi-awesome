@@ -1,4 +1,6 @@
 .venv
+.DS_Store
+node_modules
 __pycache__
 docker/mysql/
 docker/redis/

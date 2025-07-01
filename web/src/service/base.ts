@@ -1,5 +1,6 @@
-import { toast } from "sonner"
+import { toast } from 'sonner'
 import { refreshAccessTokenOrRelogin } from './refresh-token'
+import type { ApiResponse } from '@/types/api'
 import { API_PREFIX } from '@/config'
 import { asyncRunSafe } from '@/utils'
 
@@ -55,12 +56,6 @@ export type IOtherOptions = {
 
 }
 
-type ResponseError = {
-  code: string
-  message: string
-  status: number
-}
-
 type FetchOptionType = Omit<RequestInit, 'body'> & {
   params?: Record<string, any>
   body?: BodyInit | Record<string, any> | null
@@ -84,7 +79,8 @@ function getAccessToken() {
 }
 
 function removeAccessToken() {
-
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
 }
 
 export function format(text: string) {
@@ -95,9 +91,7 @@ export function format(text: string) {
   return res.replaceAll('\n', '<br/>').replaceAll('```', '')
 }
 
-
-
-const baseFetch = <T>(
+const baseFetch = async <T>(
   url: string,
   fetchOptions: FetchOptionType,
   {
@@ -107,7 +101,7 @@ const baseFetch = <T>(
     getAbortController,
     silent,
   }: IOtherOptions,
-): Promise<T> => {
+): Promise<ApiResponse<T>> => {
   const options: typeof baseOptions & FetchOptionType = Object.assign({}, baseOptions, fetchOptions)
   if (getAbortController) {
     const abortController = new AbortController()
@@ -150,59 +144,50 @@ const baseFetch = <T>(
     options.body = JSON.stringify(body)
 
   // Handle timeout
-  return Promise.race([
-    new Promise((resolve, reject) => {
-      setTimeout(() => {
-        reject(new Error('request timeout'))
-      }, TIME_OUT)
-    }),
-    new Promise((resolve, reject) => {
-      globalThis.fetch(urlWithPrefix, options as RequestInit)
-        .then((res) => {
-          const resClone = res.clone()
-          // Error handler
-          if (!/^(2|3)\d{2}$/.test(String(res.status))) {
-            const bodyJson = res.json()
-            switch (res.status) {
-              case 401:
-                return Promise.reject(resClone)
-              case 403:
-                bodyJson.then((data: ResponseError) => {
-                  if (!silent)
-                    toast.error(data.message)
-                  if (data.code === 'already_setup')
-                    globalThis.location.href = `${globalThis.location.origin}/signin`
-                })
-                break
-              // fall through
-              default:
-                bodyJson.then((data: ResponseError) => {
-                  if (!silent)
-                    toast.error(data.message)
-                })
-            }
-            return Promise.reject(resClone)
+  try {
+    const response = await Promise.race([
+      fetch(urlWithPrefix, options as RequestInit),
+      new Promise<Response>((_, reject) =>
+        setTimeout(() => reject(new Error('request timeout')), TIME_OUT),
+      ),
+    ])
+
+    const responseData: ApiResponse<T> = await response.json()
+
+    if (responseData.code !== 200) {
+      if (!silent) {
+        toast.error(responseData.message || '请求失败')
+      }
+      // Handle specific error codes for re-authentication or redirection
+      if (responseData.code === 401) {
+        // Attempt to refresh token or redirect to login
+        const [refreshErr] = await asyncRunSafe(refreshAccessTokenOrRelogin(TIME_OUT))
+        if (refreshErr === null) {
+          // If refresh successful, retry the original request
+          return baseFetch<T>(url, fetchOptions, { bodyStringify, needAllResponseContent, deleteContentType, getAbortController, silent })
+        } else {
+          // If refresh failed, redirect to login
+          if (location.pathname !== '/login') {
+            globalThis.location.href = '/login'
           }
+        }
+      } else if (responseData.code === 403) {
+        // Specific handling for 403, e.g., already setup
+        if (responseData.message === 'already_setup') {
+          globalThis.location.href = `${globalThis.location.origin}/signin`
+        }
+      }
+      throw new Error(responseData.message || '请求失败')
+    }
 
-          // handle delete api. Delete api not return content.
-          if (res.status === 204) {
-            resolve({ result: 'success' })
-            return
-          }
-
-          // return data
-          if (options.headers.get('Content-type') === ContentType.download || options.headers.get('Content-type') === ContentType.audio)
-            resolve(needAllResponseContent ? resClone : res.blob())
-
-          else resolve(needAllResponseContent ? resClone : res.json())
-        })
-        .catch((err) => {
-          if (!silent)
-            toast.error(err)
-          reject(err)
-        })
-    }),
-  ]) as Promise<T>
+    return responseData
+  } catch (error: any) {
+    console.error('Fetch error:', error)
+    if (!silent) {
+      toast.error(error.message || '网络请求失败')
+    }
+    throw error
+  }
 }
 
 export const upload = (options: any, url?: string, searchParams?: string): Promise<any> => {
@@ -247,60 +232,12 @@ export const upload = (options: any, url?: string, searchParams?: string): Promi
 export const request = async<T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
   try {
     const otherOptionsForBaseFetch = otherOptions || {}
-    const [err, resp] = await asyncRunSafe<T>(baseFetch(url, options, otherOptionsForBaseFetch))
-    if (err === null)
-      return resp
-    const errResp: Response = err as any
-    if (errResp.status === 401) {
-      const [parseErr, errRespData] = await asyncRunSafe<ResponseError>(errResp.json())
-      const loginUrl = `${globalThis.location.origin}/signin`
-      if (parseErr) {
-        globalThis.location.href = loginUrl
-        return Promise.reject(err)
-      }
-      // special code
-      const { code, message } = errRespData
-      // webapp sso
-      if (code === 'web_sso_auth_required') {
-        requiredWebSSOLogin()
-        return Promise.reject(err)
-      }
-      if (code === 'unauthorized_and_force_logout') {
-        localStorage.removeItem('console_token')
-        localStorage.removeItem('refresh_token')
-        globalThis.location.reload()
-        return Promise.reject(err)
-      }
-      const {
-        silent,
-      } = otherOptionsForBaseFetch
-      if (code === 'unauthorized') {
-        removeAccessToken()
-        globalThis.location.reload()
-        return Promise.reject(err)
-      }
-      // refresh token
-      const [refreshErr] = await asyncRunSafe(refreshAccessTokenOrRelogin(TIME_OUT))
-      if (refreshErr === null)
-        return baseFetch<T>(url, options, otherOptionsForBaseFetch)
-      if (location.pathname !== '/signin') {
-        globalThis.location.href = loginUrl
-        return Promise.reject(err)
-      }
-      if (!silent) {
-        toast.error(message)
-        return Promise.reject(err)
-      }
-      globalThis.location.href = loginUrl
-      return Promise.reject(err)
-    }
-    else {
-      return Promise.reject(err)
-    }
+    const resp = await baseFetch<T>(url, options, otherOptionsForBaseFetch)
+    return resp.data as T // Return only the data part of ApiResponse
   }
   catch (error) {
     console.error(error)
-    return Promise.reject(error)
+    throw error
   }
 }
 
@@ -324,5 +261,3 @@ export const del = <T>(url: string, options = {}, otherOptions?: IOtherOptions) 
 export const patch = <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
   return request<T>(url, Object.assign({}, options, { method: 'PATCH' }), otherOptions)
 }
-
-

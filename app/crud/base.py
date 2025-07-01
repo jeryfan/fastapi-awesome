@@ -1,6 +1,6 @@
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union,Generic
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union, Generic
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update , delete , func, or_, and_, desc, asc
+from sqlalchemy import select, update, delete, func, or_, and_, desc, asc
 from sqlalchemy.orm import selectinload
 from sqlalchemy.inspection import inspect
 from pydantic import BaseModel
@@ -8,15 +8,13 @@ from pydantic import BaseModel
 
 ModelType = TypeVar("ModelType")
 
+
 class CRUDBase(Generic[ModelType]):
     def __init__(self, model: Type[ModelType]):
         self.model = model
 
     def orm_to_dict(self, obj: ModelType) -> Dict[str, Any]:
-        return {
-            c.key: getattr(obj, c.key)
-            for c in inspect(obj).mapper.column_attrs
-        }
+        return {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs}
 
     def build_filters(self, filters: Dict[str, Any]):
         conditions = []
@@ -54,7 +52,9 @@ class CRUDBase(Generic[ModelType]):
                 or_conditions.append(and_(*and_conditions))
         return or_conditions
 
-    async def get(self, db: AsyncSession, *, primary_key: Any = None, **filters) -> Optional[ModelType]:
+    async def get(
+        self, db: AsyncSession, *, primary_key: Any = None, **filters
+    ) -> Optional[ModelType]:
         if primary_key is not None:
             return await db.get(self.model, primary_key)
         stmt = select(self.model).filter(*self.build_filters(filters))
@@ -73,7 +73,7 @@ class CRUDBase(Generic[ModelType]):
         exclude_fields: Optional[List[str]] = None,
         return_total: bool = False,
         select_fields: Optional[List[str]] = None,
-        joins: Optional[List[Any]] = None
+        joins: Optional[List[Any]] = None,
     ) -> Union[List[ModelType], Dict[str, Any]]:
         stmt = select(self.model)
 
@@ -98,7 +98,9 @@ class CRUDBase(Generic[ModelType]):
             for field in order_by:
                 column = getattr(self.model, field.lstrip("-"), None)
                 if column is not None:
-                    order_clauses.append(desc(column) if field.startswith("-") else asc(column))
+                    order_clauses.append(
+                        desc(column) if field.startswith("-") else asc(column)
+                    )
             if order_clauses:
                 stmt = stmt.order_by(*order_clauses)
 
@@ -137,7 +139,7 @@ class CRUDBase(Generic[ModelType]):
         db: AsyncSession,
         *,
         filters: Optional[Dict[str, Any]] = None,
-        or_filters: Optional[List[Dict[str, Any]]] = None
+        or_filters: Optional[List[Dict[str, Any]]] = None,
     ) -> int:
         stmt = select(func.count()).select_from(self.model)
         conditions = []
@@ -152,8 +154,9 @@ class CRUDBase(Generic[ModelType]):
         result = await db.execute(stmt)
         return result.scalar()
 
-
-    async def insert(self, db: AsyncSession, *, obj_in: Union[Dict[str, Any], BaseModel]) -> ModelType:
+    async def insert(
+        self, db: AsyncSession, *, obj_in: Union[Dict[str, Any], BaseModel]
+    ) -> ModelType:
         data = obj_in.model_dump() if isinstance(obj_in, BaseModel) else obj_in
         db_obj = self.model(**data)
         db.add(db_obj)
@@ -161,16 +164,31 @@ class CRUDBase(Generic[ModelType]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def insert_many(self, db: AsyncSession, *, objs_in: List[Union[Dict[str, Any], BaseModel]]) -> List[ModelType]:
-        db_objs = [self.model(**(obj.model_dump() if isinstance(obj, BaseModel) else obj)) for obj in objs_in]
+    async def insert_many(
+        self, db: AsyncSession, *, objs_in: List[Union[Dict[str, Any], BaseModel]]
+    ) -> List[ModelType]:
+        db_objs = [
+            self.model(**(obj.model_dump() if isinstance(obj, BaseModel) else obj))
+            for obj in objs_in
+        ]
         db.add_all(db_objs)
         await db.commit()
         for obj in db_objs:
             await db.refresh(obj)
         return db_objs
 
-    async def update(self, db: AsyncSession, *, db_obj: ModelType, obj_in: Union[Dict[str, Any], BaseModel]) -> ModelType:
-        update_data = obj_in.model_dump(exclude_unset=True) if isinstance(obj_in, BaseModel) else obj_in
+    async def update(
+        self,
+        db: AsyncSession,
+        *,
+        db_obj: ModelType,
+        obj_in: Union[Dict[str, Any], BaseModel],
+    ) -> ModelType:
+        update_data = (
+            obj_in.model_dump(exclude_unset=True)
+            if isinstance(obj_in, BaseModel)
+            else obj_in
+        )
         for field, value in update_data.items():
             setattr(db_obj, field, value)
         await db.commit()
@@ -178,11 +196,7 @@ class CRUDBase(Generic[ModelType]):
         return db_obj
 
     async def update_many(
-        self,
-        db: AsyncSession,
-        *,
-        ids: List[Any],
-        obj_in: Dict[str, Any]
+        self, db: AsyncSession, *, ids: List[Any], obj_in: Dict[str, Any]
     ) -> int:
         model_fields = self.model.__table__.columns.keys()
         safe_obj_in = {k: v for k, v in obj_in.items() if k in model_fields}
@@ -193,9 +207,14 @@ class CRUDBase(Generic[ModelType]):
         await db.commit()
         return result.rowcount
 
-    async def delete(self, db: AsyncSession, *, primary_key: Optional[Any] = None,
-        filters: Optional[Dict[str, Any]] = None) -> Optional[ModelType]:
-        
+    async def delete(
+        self,
+        db: AsyncSession,
+        *,
+        primary_key: Optional[Any] = None,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> Optional[ModelType]:
+
         stmt = delete(self.model)
         if primary_key is not None:
             if isinstance(primary_key, (list, tuple)):
@@ -205,6 +224,8 @@ class CRUDBase(Generic[ModelType]):
         elif filters:
             stmt = stmt.where(*self.build_filters(filters))
         else:
-            raise ValueError("Either primary_key or filters must be provided for deletion.")
+            raise ValueError(
+                "Either primary_key or filters must be provided for deletion."
+            )
         await db.execute(stmt)
         await db.commit()

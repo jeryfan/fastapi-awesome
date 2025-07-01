@@ -1,4 +1,14 @@
 services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/fastapi.conf:/etc/nginx/conf.d/fastapi.conf
+      - ./nginx/proxy.conf:/etc/nginx/proxy.conf
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    restart: unless-stopped
   redis:
     image: redis
     container_name: redis

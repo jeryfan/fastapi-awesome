@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str = f"redis://{REDIS_HOST}:{REDIS_PORT}/{CELERY_BROKER_DB}"
     CELERY_RESULT_BACKEND: str = f"redis://{REDIS_HOST}:{REDIS_PORT}/{CELERY_RESULT_DB}"
 
+    STORAGE_TYPE: str = "opendal"  # opendal or local
+    OPENDAL_SCHEME: str = "fs"
+    STORAGE_LOCAL_PATH: str = "/workspace/www/storage"
+    OPENDAL_ROOT: str = "/workspace/www/storage"
+
     class Config:
         env_file = ".env"
 

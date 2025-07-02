@@ -27,3 +27,7 @@ export async function login(data: LoginPayload) {
 export async function register(data: RegisterPayload) {
   return post('/auth/register', { body: data })
 }
+
+export async function logout() {
+  return post('/auth/logout')
+}

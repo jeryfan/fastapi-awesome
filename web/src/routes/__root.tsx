@@ -1,8 +1,11 @@
-import { Outlet, createRootRouteWithContext, useRouterState } from '@tanstack/react-router'
+import {
+  Outlet,
+  createRootRouteWithContext,
+  useRouterState,
+} from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
-import Header from '../components/Header'
-
+import Sidebar from '../components/Sidebar'
 import TanStackQueryLayout from '../integrations/tanstack-query/layout.tsx'
 
 import type { QueryClient } from '@tanstack/react-query'
@@ -13,15 +16,18 @@ interface MyRouterContext {
 
 function RootComponent() {
   const { location } = useRouterState()
-  const showHeader = !['/login', '/register'].includes(location.pathname)
+  const isAuthenticated = !!localStorage.getItem('token')
+  const showSidebar = !['/login', '/register'].includes(location.pathname)
 
   return (
-    <>
-      {showHeader && <Header />}
-      <Outlet />
-      <TanStackRouterDevtools />
+    <div className="flex h-screen bg-gray-50">
+      {showSidebar && <Sidebar />}
+      <main className="flex-1 overflow-y-auto">
+        <Outlet />
+      </main>
+      {/* <TanStackRouterDevtools /> */}
       <TanStackQueryLayout />
-    </>
+    </div>
   )
 }
 

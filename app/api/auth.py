@@ -115,15 +115,22 @@ async def login_for_access_token(
             data={"sub": str(user.id)},  # token payload 中的 sub 字段通常是用户 ID
             expires_delta=access_token_expires,
         )
-        return ApiResponse(
-            data={"access_token": access_token, "token_type": "bearer"},
-            message="登录成功",
-        )
     except Exception as e:
         logger.exception(f"登录失败: {e}")
         return ApiResponse(
             code=status.HTTP_500_INTERNAL_SERVER_ERROR, message=f"登录失败: {e}"
         )
+    return ApiResponse(
+        data={"access_token": access_token, "token_type": "bearer"},
+        code=status.HTTP_200_OK,
+    )
+
+
+@router.post("/logout")
+async def logout(current_user: Annotated[User, Depends(get_current_user)]):
+    # Here you can add logic to invalidate the token, e.g., add it to a blacklist.
+    # For simplicity, we'll just return a success message.
+    return ApiResponse(data=None, code=status.HTTP_200_OK)
 
 
 @router.get("/me", response_model=ApiResponse[User])

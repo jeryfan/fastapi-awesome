@@ -44,7 +44,7 @@ function LoginComponent() {
       localStorage.setItem('access_token', data.access_token)
       localStorage.setItem('refresh_token', data.refresh_token)
       toast.success('登录成功！')
-      navigate({ to: '/' })
+      navigate({ to: '/upload' })
     },
     onError: (error: any) => {
       toast.error('登录失败', {
@@ -141,10 +141,18 @@ function LoginComponent() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loginMutation.isPending}
+              >
                 {loginMutation.isPending ? '登录中...' : '登录'}
               </Button>
-              <Button variant="outline" className="w-full" onClick={handleGithubLogin}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleGithubLogin}
+              >
                 使用Github登录
               </Button>
             </form>

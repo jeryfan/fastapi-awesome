@@ -1,3 +1,4 @@
+// 导入
 import { toast } from 'sonner'
 import { refreshAccessTokenOrRelogin } from './refresh-token'
 import type { ApiResponse } from '@/types/api'
@@ -11,33 +12,22 @@ const ContentType = {
   stream: 'text/event-stream',
   audio: 'audio/mpeg',
   form: 'application/x-www-form-urlencoded; charset=UTF-8',
-  download: 'application/octet-stream', // for download
-  upload: 'multipart/form-data', // for upload
+  download: 'application/octet-stream',
+  upload: 'multipart/form-data',
 }
 
 const baseOptions = {
   method: 'GET',
   mode: 'cors',
-  credentials: 'include', // always send cookies、HTTP Basic authentication.
+  credentials: 'include',
   headers: new Headers({
     'Content-Type': ContentType.json,
   }),
   redirect: 'follow',
 }
 
-export type IOnDataMoreInfo = {
-  conversationId?: string
-  taskId?: string
-  messageId: string
-  errorMessage?: string
-  errorCode?: string
-}
-
-export type IOnData = (message: string, isFirstMessage: boolean, moreInfo: IOnDataMoreInfo) => void
 export type IOnCompleted = (hasError?: boolean, errorMessage?: string) => void
 export type IOnError = (msg: string, code?: string) => void
-
-
 export type IOnTTSChunk = (messageId: string, audioStr: string, audioType?: string) => void
 export type IOnTTSEnd = (messageId: string, audioStr: string, audioType?: string) => void
 
@@ -46,32 +36,16 @@ export type IOtherOptions = {
   needAllResponseContent?: boolean
   deleteContentType?: boolean
   silent?: boolean
-  onData?: IOnData // for stream
   onError?: IOnError
-  onCompleted?: IOnCompleted // for stream
+  onCompleted?: IOnCompleted
   getAbortController?: (abortController: AbortController) => void
-
   onTTSChunk?: IOnTTSChunk
   onTTSEnd?: IOnTTSEnd
-
 }
 
 type FetchOptionType = Omit<RequestInit, 'body'> & {
   params?: Record<string, any>
   body?: BodyInit | Record<string, any> | null
-}
-
-function unicodeToChar(text: string) {
-  if (!text)
-    return ''
-
-  return text.replace(/\\u[0-9a-f]{4}/g, (_match, p1) => {
-    return String.fromCharCode(parseInt(p1, 16))
-  })
-}
-
-function requiredWebSSOLogin() {
-  globalThis.location.href = `/webapp-signin?redirect_url=${globalThis.location.pathname}`
 }
 
 function getAccessToken() {
@@ -83,12 +57,14 @@ function removeAccessToken() {
   localStorage.removeItem('refresh_token')
 }
 
-export function format(text: string) {
-  let res = text.trim()
-  if (res.startsWith('\n'))
-    res = res.replace('\n', '')
+function buildQueryParams(params: Record<string, any>): string {
+  return Object.entries(params)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+}
 
-  return res.replaceAll('\n', '<br/>').replaceAll('```', '')
+export function format(text: string) {
+  return text.trim().replaceAll('\n', '<br/>').replaceAll('```', '')
 }
 
 const baseFetch = async <T>(
@@ -100,164 +76,137 @@ const baseFetch = async <T>(
     deleteContentType,
     getAbortController,
     silent,
-  }: IOtherOptions,
+  }: IOtherOptions = {}
 ): Promise<ApiResponse<T>> => {
   const options: typeof baseOptions & FetchOptionType = Object.assign({}, baseOptions, fetchOptions)
+  const accessToken = getAccessToken()
+
   if (getAbortController) {
     const abortController = new AbortController()
     getAbortController(abortController)
     options.signal = abortController.signal
   }
-  const accessToken = getAccessToken()
+
   options.headers.set('Authorization', `Bearer ${accessToken}`)
 
   if (deleteContentType) {
     options.headers.delete('Content-Type')
-  }
-  else {
-    const contentType = options.headers.get('Content-Type')
-    if (!contentType)
-      options.headers.set('Content-Type', ContentType.json)
+  } else if (!options.headers.get('Content-Type')) {
+    options.headers.set('Content-Type', ContentType.json)
   }
 
-  let urlWithPrefix = (url.startsWith('http://') || url.startsWith('https://'))
-    ? url
-    : `${API_PREFIX}${url.startsWith('/') ? url : `/${url}`}`
+  let urlWithPrefix = /^https?:\/\//.test(url) ? url : `${API_PREFIX}${url.startsWith('/') ? url : `/${url}`}`
 
   const { method, params, body } = options
-  // handle query
+
   if (method === 'GET' && params) {
-    const paramsArray: Array<string> = []
-    Object.keys(params).forEach(key =>
-      paramsArray.push(`${key}=${encodeURIComponent(params[key])}`),
-    )
-    if (urlWithPrefix.search(/\?/) === -1)
-      urlWithPrefix += `?${paramsArray.join('&')}`
-
-    else
-      urlWithPrefix += `&${paramsArray.join('&')}`
-
+    const query = buildQueryParams(params)
+    urlWithPrefix += urlWithPrefix.includes('?') ? `&${query}` : `?${query}`
     delete options.params
   }
 
-  if (body && bodyStringify)
-    options.body = JSON.stringify(body)
+  // body处理
+  if (body && method !== 'GET') {
+    const contentType = options.headers.get('Content-Type')
+    if (body instanceof FormData || body instanceof Blob) {
+      options.body = body as BodyInit
+    } else if (bodyStringify && contentType?.includes('application/json')) {
+      options.body = JSON.stringify(body)
+    } else if (contentType?.includes('x-www-form-urlencoded')) {
+      options.body = buildQueryParams(body as Record<string, any>)
+    }
+  }
 
-  // Handle timeout
   try {
     const response = await Promise.race([
       fetch(urlWithPrefix, options as RequestInit),
-      new Promise<Response>((_, reject) =>
-        setTimeout(() => reject(new Error('request timeout')), TIME_OUT),
-      ),
+      new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('请求超时')), TIME_OUT)),
     ])
 
     const responseData: ApiResponse<T> = await response.json()
 
     if (responseData.code !== 200) {
-      if (!silent) {
-        toast.error(responseData.message || '请求失败')
-      }
-      // Handle specific error codes for re-authentication or redirection
+      if (!silent) toast.error(responseData.msg || '请求失败')
+
       if (responseData.code === 401) {
-        // Attempt to refresh token or redirect to login
         const [refreshErr] = await asyncRunSafe(refreshAccessTokenOrRelogin(TIME_OUT))
-        if (refreshErr === null) {
-          // If refresh successful, retry the original request
-          return baseFetch<T>(url, fetchOptions, { bodyStringify, needAllResponseContent, deleteContentType, getAbortController, silent })
+        if (!refreshErr) {
+          return baseFetch<T>(url, fetchOptions, {
+            bodyStringify,
+            needAllResponseContent,
+            deleteContentType,
+            getAbortController,
+            silent,
+          })
         } else {
-          // If refresh failed, redirect to login
-          if (location.pathname !== '/login') {
-            globalThis.location.href = '/login'
-          }
+          if (location.pathname !== '/login') globalThis.location.href = '/login'
         }
-      } else if (responseData.code === 403) {
-        // Specific handling for 403, e.g., already setup
-        if (responseData.message === 'already_setup') {
-          globalThis.location.href = `${globalThis.location.origin}/signin`
-        }
+      } else if (responseData.code === 403 && responseData.msg === 'already_setup') {
+        globalThis.location.href = `${globalThis.location.origin}/signin`
       }
-      throw new Error(responseData.message || '请求失败')
+
+      throw new Error(responseData.msg || '请求失败')
     }
 
     return responseData
   } catch (error: any) {
     console.error('Fetch error:', error)
-    if (!silent) {
-      toast.error(error.message || '网络请求失败')
-    }
+    if (!silent) toast.error(error.message || '网络请求失败')
     throw error
   }
 }
 
 export const upload = (options: any, url?: string, searchParams?: string): Promise<any> => {
-  const urlPrefix = API_PREFIX
   const token = getAccessToken()
-  const defaultOptions = {
-    method: 'POST',
-    url: (url ? `${urlPrefix}${url}` : `${urlPrefix}/files/upload`) + (searchParams || ''),
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    data: {},
-  }
-  options = {
-    ...defaultOptions,
-    ...options,
-    headers: { ...defaultOptions.headers, ...options.headers },
-  }
-  return new Promise((resolve, reject) => {
-    const xhr = options.xhr
-    xhr.open(options.method, options.url)
-    for (const key in options.headers)
-      xhr.setRequestHeader(key, options.headers[key])
+  const fullUrl = `${API_PREFIX}${url || '/files/upload'}${searchParams || ''}`
+  const xhr = options?.xhr || new XMLHttpRequest()
 
+  return new Promise((resolve, reject) => {
+    xhr.open('POST', fullUrl)
     xhr.withCredentials = true
     xhr.responseType = 'json'
-    xhr.onreadystatechange = function () {
+    xhr.upload.onprogress = options.onprogress
+
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    }
+    Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v as string))
+
+    xhr.onreadystatechange = () => {
       if (xhr.readyState === 4) {
-        if (xhr.status === 201)
-          resolve(xhr.response)
-        else
-          reject(xhr)
+        if (xhr.status === 201) resolve(xhr.response)
+        else reject(xhr)
       }
     }
-    xhr.upload.onprogress = options.onprogress
+
     xhr.send(options.data)
   })
 }
 
-
-// base request
-export const request = async<T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
+// 通用请求封装
+export const request = async <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
   try {
-    const otherOptionsForBaseFetch = otherOptions || {}
-    const resp = await baseFetch<T>(url, options, otherOptionsForBaseFetch)
-    return resp.data as T // Return only the data part of ApiResponse
-  }
-  catch (error) {
+    const resp = await baseFetch<T>(url, options, otherOptions || {})
+    return resp.data as T
+  } catch (error) {
     console.error(error)
     throw error
   }
 }
 
-// request methods
-export const get = <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
-  return request<T>(url, Object.assign({}, options, { method: 'GET' }), otherOptions)
-}
+// 方法快捷调用
+export const get = <T>(url: string, options = {}, otherOptions?: IOtherOptions) =>
+  request<T>(url, { ...options, method: 'GET' }, otherOptions)
 
-export const post = <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
-  return request<T>(url, Object.assign({}, options, { method: 'POST' }), otherOptions)
-}
+export const post = <T>(url: string, options = {}, otherOptions?: IOtherOptions) =>
+  request<T>(url, { ...options, method: 'POST' }, otherOptions)
 
-export const put = <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
-  return request<T>(url, Object.assign({}, options, { method: 'PUT' }), otherOptions)
-}
+export const put = <T>(url: string, options = {}, otherOptions?: IOtherOptions) =>
+  request<T>(url, { ...options, method: 'PUT' }, otherOptions)
 
-export const del = <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
-  return request<T>(url, Object.assign({}, options, { method: 'DELETE' }), otherOptions)
-}
+export const del = <T>(url: string, options = {}, otherOptions?: IOtherOptions) =>
+  request<T>(url, { ...options, method: 'DELETE' }, otherOptions)
 
-export const patch = <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
-  return request<T>(url, Object.assign({}, options, { method: 'PATCH' }), otherOptions)
-}
+export const patch = <T>(url: string, options = {}, otherOptions?: IOtherOptions) =>
+  request<T>(url, { ...options, method: 'PATCH' }, otherOptions)

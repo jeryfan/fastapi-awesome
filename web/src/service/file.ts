@@ -18,8 +18,7 @@ export function uploadFile(
         }
       },
       signal,
-    },
-    '/files/upload',
+    }
   )
 }
 

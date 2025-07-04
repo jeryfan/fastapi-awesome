@@ -22,6 +22,7 @@ class Task(TimestampMixin, Base):
     )
 
     task_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    file_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     status: Mapped[TaskStatus] = mapped_column(
         Enum(TaskStatus), nullable=False, index=True, default=TaskStatus.PENDING
     )

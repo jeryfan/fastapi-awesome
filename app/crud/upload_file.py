@@ -11,4 +11,4 @@ class CRUDUploadFile(CRUDBase[UploadFile]):
     pass
 
 
-upload_file_crud = CRUDUploadFile(UploadFile)
+file_crud = CRUDUploadFile(UploadFile)

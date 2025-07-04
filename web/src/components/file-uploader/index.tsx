@@ -57,15 +57,7 @@ const Uploader = () => {
               align="end"
               sideOffset={4}
             >
-              <div>
-                <div className="p-4 border-b">
-                  <h4 className="font-medium leading-none">任务通知</h4>
-                  <p className="text-sm text-muted-foreground">
-                    你收到的最新任务列表
-                  </p>
-                </div>
-                <TaskList />
-              </div>
+              <TaskList />
             </PopoverContent>
           </Popover>
         </div>

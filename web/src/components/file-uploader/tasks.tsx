@@ -1,8 +1,12 @@
-// src/components/TaskList.tsx
-
 import React from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { AlertCircle, CheckCircle2, FileText } from 'lucide-react'
+import {
+  AlertCircle,
+  CheckCircle2,
+  File,
+  FileText,
+  GitPullRequestDraftIcon,
+} from 'lucide-react'
 import type { Task } from '@/service/task'
 import { fetchTasks } from '@/service/task'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -32,7 +36,11 @@ export function TaskList() {
     queryKey: ['tasks'],
     queryFn: fetchTasks,
     initialPageParam: 0,
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    getNextPageParam: (lastPage) => {
+      const { page, size, total } = lastPage
+      const totalPages = Math.ceil(total / size)
+      return page < totalPages ? page + 1 : undefined
+    },
   })
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -70,38 +78,37 @@ export function TaskList() {
   }
 
   return (
-    <ScrollArea className="h-96 w-full" onScroll={handleScroll}>
-      <div className="p-2">
+    <div
+      className="bg-white relative z-10 pb-4 min-w-[10rem] min-h-[6rem]"
+      onScroll={handleScroll}
+    >
+      <h2 className="text-[1rem] font-semibold px-6 my-4">上传记录</h2>
+      <ScrollArea onScroll={handleScroll} className="h-[10rem] px-4 mb-4">
         {data.pages.map((group, i) => (
           <React.Fragment key={i}>
             {group.tasks.map((task: Task) => (
               <div
                 key={task.task_id}
-                className="flex items-start gap-3 p-2 rounded-lg hover:bg-accent"
+                className="relative flex items-center overflow-x-hidden overflow-y-visible px-2 justify-start w-[16rem] h-[2.5rem] mb-3 group hover:bg-slate-100 rounded-lg group cursor-pointer transition-all duration-300 ease-out"
               >
-                {/* Icon based on state */}
                 {task.state === 'done' && (
-                  <CheckCircle2 className="h-5 w-5 mt-0.5 text-green-500" />
+                  <File className="min-w-[1.6rem] mr-2 group-hover:min-w-[1.8rem] duration-100" />
                 )}
                 {task.state === 'error' && (
-                  <AlertCircle className="h-5 w-5 mt-0.5 text-destructive" />
+                  <File className="min-w-[1.6rem] mr-2 group-hover:min-w-[1.8rem] duration-100" />
                 )}
 
-                <div className="flex-1">
-                  <p className="text-sm font-medium leading-none truncate">
-                    {task.file_name}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDate(task.created_at)}
-                  </p>
-                </div>
+                <span className="block truncate overflow-hidden relative font-semibold text-ellipsis max-w-[calc(100%-4rem)] text-sm">
+                  {task.file_name || '未知文件名'}
+                </span>
 
-                {/* State Badge */}
-                <Badge
-                  variant={task.state === 'error' ? 'destructive' : 'secondary'}
-                >
-                  {task.state}
-                </Badge>
+                <div className="flex items-center justify-center ml-auto relative top-[0.1rem] h-6 w-6">
+                  <span className="anticon text-[2rem] absolute inset-0 flex items-center justify-center text-[#00B365] transition-all duration-500 opacity-0 scale-75 -rotate-90">
+                    <AlertCircle className="w-4 h-4" />
+                  </span>
+                  <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 opacity-100 scale-100"></div>
+                </div>
+                <div className="text-sm whitespace-nowrap"></div>
               </div>
             ))}
           </React.Fragment>
@@ -114,7 +121,7 @@ export function TaskList() {
               ? ''
               : '已加载全部任务'}
         </div>
-      </div>
-    </ScrollArea>
+      </ScrollArea>
+    </div>
   )
 }

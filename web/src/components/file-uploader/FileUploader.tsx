@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Link, LucideUploadCloud } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { uploadFile } from '@/service/file'
 
 const acceptedFileTypes = {
   'application/pdf': ['.pdf'],
@@ -20,7 +21,9 @@ const acceptedFileTypes = {
 const FileUploader = ({ onSwitchToUrl }: { onSwitchToUrl: () => void }) => {
   const onDrop = useCallback((acceptedFiles: Array<File>) => {
     console.log('拖拽或选择的文件:', acceptedFiles)
-    // TODO: 这里处理上传逻辑
+    uploadFile(acceptedFiles[0], (progress) => {
+      console.log('上传进度:', progress)
+    })
   }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

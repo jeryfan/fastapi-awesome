@@ -8,6 +8,8 @@ services:
       - ./nginx/fastapi.conf:/etc/nginx/conf.d/fastapi.conf
       - ./nginx/proxy.conf:/etc/nginx/proxy.conf
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./www/:/workspace/www/
     restart: unless-stopped
   redis:
     image: redis
@@ -92,6 +94,7 @@ services:
     volumes:
       - ../app/:/workspace/app/
       - ./entrypoint.sh:/workspace/entrypoint.sh
+      - ./www/:/workspace/www/
     environment:
       - AUTO_MIGRATE=${AUTO_MIGRATE:-false}
       - SERVICE_ROLE=server

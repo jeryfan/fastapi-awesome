@@ -97,6 +97,7 @@ async def login_for_access_token(
     """
     通过邮箱和密码获取 access token。
     """
+    print(db)
     try:
         user = await user_crud.get_by_email(db, login_data.email)
         # 验证用户是否存在、是否有密码、密码是否正确

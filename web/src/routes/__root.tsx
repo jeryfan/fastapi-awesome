@@ -1,6 +1,7 @@
 import {
   Outlet,
   createRootRouteWithContext,
+  redirect,
   useRouterState,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
@@ -16,7 +17,6 @@ interface MyRouterContext {
 
 function RootComponent() {
   const { location } = useRouterState()
-  const isAuthenticated = !!localStorage.getItem('token')
   const showSidebar = !['/login', '/register'].includes(location.pathname)
 
   return (
@@ -34,5 +34,20 @@ function RootComponent() {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+  beforeLoad: ({ location }) => {
+    const isAuthenticated = !!localStorage.getItem('access_token')
+    if (
+      !isAuthenticated &&
+      location.pathname !== '/login' &&
+      location.pathname !== '/register'
+    ) {
+      throw redirect({
+        to: '/login',
+        search: {
+          redirect: location.href,
+        },
+      })
+    }
+  },
   component: RootComponent,
 })

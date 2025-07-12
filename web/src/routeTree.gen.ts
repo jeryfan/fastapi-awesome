@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ViewRouteImport } from './routes/view'
 import { Route as UploadRouteImport } from './routes/upload'
+import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HomeRouteImport } from './routes/home'
@@ -25,6 +26,11 @@ const ViewRoute = ViewRouteImport.update({
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
   path: '/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/tasks': typeof TasksRoute
   '/upload': typeof UploadRoute
   '/view': typeof ViewRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/tasks': typeof TasksRoute
   '/upload': typeof UploadRoute
   '/view': typeof ViewRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/tasks': typeof TasksRoute
   '/upload': typeof UploadRoute
   '/view': typeof ViewRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/register'
+    | '/tasks'
     | '/upload'
     | '/view'
     | '/demo/tanstack-query'
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/register'
+    | '/tasks'
     | '/upload'
     | '/view'
     | '/demo/tanstack-query'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/login'
     | '/register'
+    | '/tasks'
     | '/upload'
     | '/view'
     | '/demo/tanstack-query'
@@ -116,6 +128,7 @@ export interface RootRouteChildren {
   HomeRoute: typeof HomeRoute
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  TasksRoute: typeof TasksRoute
   UploadRoute: typeof UploadRoute
   ViewRoute: typeof ViewRoute
   DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/upload'
       fullPath: '/upload'
       preLoaderRoute: typeof UploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -180,6 +200,7 @@ const rootRouteChildren: RootRouteChildren = {
   HomeRoute: HomeRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  TasksRoute: TasksRoute,
   UploadRoute: UploadRoute,
   ViewRoute: ViewRoute,
   DemoTanstackQueryRoute: DemoTanstackQueryRoute,

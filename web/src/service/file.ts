@@ -1,6 +1,6 @@
 import { post, upload } from './base'
 
-export function uploadFile(
+export async function uploadFile(
   file: File,
   onProgress: (progress: number) => void,
   signal?: AbortSignal,
@@ -8,7 +8,7 @@ export function uploadFile(
   const formData = new FormData()
   formData.append('file', file)
 
-  return upload(
+  return await upload(
     {
       data: formData,
       onprogress: (event: ProgressEvent) => {

@@ -5,7 +5,7 @@ celery_app = Celery(
     "tasks",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["app.tasks.example", "app.schedule.periodic"],
+    include=["app.tasks.example", "app.schedule.periodic", "app.tasks.task"],
 )
 
 celery_app.conf.update(

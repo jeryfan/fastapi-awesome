@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Apple, AppleIcon, Bell, Layers } from 'lucide-react'
+import { useAtomValue } from 'jotai'
 import { Button } from '../ui/button'
 import {
   Tooltip,
@@ -11,9 +12,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import UrlUploader from './UrlUploader'
 import FileUploader from './FileUploader'
 import { TaskList } from './tasks'
+import { uploadingTasksAtom } from '@/atoms/upload'
 
 const Uploader = () => {
   const [mode, setMode] = useState<'file' | 'url'>('file')
+  const uploadingTasks = useAtomValue(uploadingTasksAtom)
+  const [popoverOpen, setPopoverOpen] = useState(false)
 
   return (
     <div className="min-h-full min-w-full w-full h-full flex justify-center items-center px-4 sm:px-6 relative">
@@ -41,21 +45,29 @@ const Uploader = () => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Popover>
+          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant={'outline'}
                 size={'icon'}
-                className="border-none px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200"
+                className="relative z-9 border-none px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200"
               >
                 <Layers />
+                {uploadingTasks.length > 0 && (
+                  <div className="w-5 h-5 opacity-100 rounded-full bg-blue-600 text-[#fff] overflow-hidden absolute -top-1/4 -right-1/4">
+                    <div className="transform-none absolute inset-0 flex items-center justify-center text-sm font-bold">
+                      1
+                    </div>
+                  </div>
+                )}
               </Button>
             </PopoverTrigger>
             <PopoverContent
-              className="w-80"
+              className="w-80 overflow-auto"
               side="bottom"
               align="end"
               sideOffset={4}
+              onWheel={(e) => e.stopPropagation()}
             >
               <TaskList />
             </PopoverContent>
@@ -63,7 +75,10 @@ const Uploader = () => {
         </div>
         <div className="h-auto sm:h-[280px] w-full">
           {mode === 'file' ? (
-            <FileUploader onSwitchToUrl={() => setMode('url')} />
+            <FileUploader
+              onSwitchToUrl={() => setMode('url')}
+              setPopoverOpen={setPopoverOpen}
+            />
           ) : (
             <UrlUploader onCancel={() => setMode('file')} />
           )}

@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class UploadFileOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)  # Pydantic v2 替代 orm_mode
+    model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     storage_type: str

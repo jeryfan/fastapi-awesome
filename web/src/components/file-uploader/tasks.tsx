@@ -1,30 +1,15 @@
 import React from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import {
-  AlertCircle,
-  CheckCircle2,
-  File,
-  FileText,
-  GitPullRequestDraftIcon,
-} from 'lucide-react'
-import type { Task } from '@/service/task'
-import { fetchTasks } from '@/service/task'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { Check, CheckCircle, File, LoaderIcon } from 'lucide-react'
+import { useAtomValue } from 'jotai'
+import Spin from '../Spin'
+import { taskList } from '@/service/task'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge' // Let's add Badges for the state
-
-// Helper to format the timestamp
-const formatDate = (timestamp: number) => {
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(timestamp))
-}
+import PDFIcon from '@/assets/icons/pdf.svg'
+import { uploadingTasksAtom } from '@/atoms/upload'
 
 export function TaskList() {
+  const uploadingTasks = useAtomValue(uploadingTasksAtom)
   const {
     data,
     error,
@@ -34,14 +19,16 @@ export function TaskList() {
     status,
   } = useInfiniteQuery({
     queryKey: ['tasks'],
-    queryFn: fetchTasks,
-    initialPageParam: 0,
+    queryFn: taskList,
+    initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       const { page, size, total } = lastPage
       const totalPages = Math.ceil(total / size)
       return page < totalPages ? page + 1 : undefined
     },
   })
+
+  console.log('data:', data)
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget
@@ -78,15 +65,43 @@ export function TaskList() {
   }
 
   return (
-    <div
-      className="bg-white relative z-10 pb-4 min-w-[10rem] min-h-[6rem]"
-      onScroll={handleScroll}
-    >
+    <div className="bg-white relative z-10 pb-4 min-w-[10rem] min-h-[6rem] ">
       <h2 className="text-[1rem] font-semibold px-6 my-4">上传记录</h2>
-      <ScrollArea onScroll={handleScroll} className="h-[10rem] px-4 mb-4">
+      <div
+        onScroll={handleScroll}
+        className="h-[10rem] px-4 mb-4 overflow-auto"
+      >
+        {uploadingTasks.length > 0 &&
+          uploadingTasks.map((task: any) => (
+            <div
+              key={task.id}
+              className="relative flex items-center overflow-x-hidden overflow-y-visible px-2 justify-start w-[16rem] h-[2.5rem] mb-3 group hover:bg-slate-100 rounded-lg group cursor-pointer transition-all duration-300 ease-out"
+            >
+              <img
+                src={PDFIcon}
+                className="min-w-[1.6rem] mr-2 group-hover:min-w-[1.8rem] duration-100"
+              />
+              <span className="block truncate overflow-hidden relative font-semibold text-ellipsis max-w-[calc(100%-4rem)] text-sm">
+                {task.file_name || task.file_name}
+              </span>
+
+              <div className="flex items-center justify-center ml-auto relative top-[0.1rem] h-6 w-6">
+                <span className=" absolute inset-0 flex items-center justify-center transition-all duration-500 opacity-100">
+                  {/* <Loader className="text-gray-400 animate-spin" /> */}
+                  {/* <Spin /> */}
+                </span>
+                {/* <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 opacity-100 scale-100"></div> */}
+              </div>
+
+              <div className="w-4 h-4 ml-auto  mr-2 inline-block animate-pulse">
+                <LoaderIcon className="animate-spin w-4 h-4" />
+              </div>
+              <span className="text-sm whitespace-nowrap">上传中</span>
+            </div>
+          ))}
         {data.pages.map((group, i) => (
           <React.Fragment key={i}>
-            {group.tasks.map((task: Task) => (
+            {group.list.map((task: any) => (
               <div
                 key={task.task_id}
                 className="relative flex items-center overflow-x-hidden overflow-y-visible px-2 justify-start w-[16rem] h-[2.5rem] mb-3 group hover:bg-slate-100 rounded-lg group cursor-pointer transition-all duration-300 ease-out"
@@ -98,13 +113,17 @@ export function TaskList() {
                   <File className="min-w-[1.6rem] mr-2 group-hover:min-w-[1.8rem] duration-100" />
                 )}
 
+                <img
+                  src={PDFIcon}
+                  className="min-w-[1.6rem] mr-2 group-hover:min-w-[1.8rem] duration-100"
+                />
                 <span className="block truncate overflow-hidden relative font-semibold text-ellipsis max-w-[calc(100%-4rem)] text-sm">
                   {task.file_name || '未知文件名'}
                 </span>
 
                 <div className="flex items-center justify-center ml-auto relative top-[0.1rem] h-6 w-6">
-                  <span className="anticon text-[2rem] absolute inset-0 flex items-center justify-center text-[#00B365] transition-all duration-500 opacity-0 scale-75 -rotate-90">
-                    <AlertCircle className="w-4 h-4" />
+                  <span className="anticon text-[2rem] absolute inset-0 flex items-center justify-center bg-[#00B365] rounded-full text-white transition-all duration-500 opacity-100 scale-75 ">
+                    <Check className="w-4 h-4" />
                   </span>
                   <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 opacity-100 scale-100"></div>
                 </div>
@@ -121,7 +140,7 @@ export function TaskList() {
               ? ''
               : '已加载全部任务'}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }

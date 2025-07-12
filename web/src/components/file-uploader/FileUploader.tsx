@@ -1,30 +1,64 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Link, LucideUploadCloud } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import { useSetAtom } from 'jotai'
+import { v4 as uuidv4 } from 'uuid'
 import { Button } from '@/components/ui/button'
 import { uploadFile } from '@/service/file'
+import { taskCreate } from '@/service/task'
+import { addUploadTaskAtom, removeUploadTaskAtom } from '@/atoms/upload'
 
-const acceptedFileTypes = {
-  'application/pdf': ['.pdf'],
-  'application/msword': ['.doc', '.docx'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
-    '.docx',
-  ],
-  'application/vnd.ms-powerpoint': ['.ppt', '.pptx'],
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': [
-    '.pptx',
-  ],
-  'image/png': ['.png'],
-  'image/jpeg': ['.jpg', '.jpeg'],
-}
+const FileUploader = ({
+  onSwitchToUrl,
+  setPopoverOpen,
+}: {
+  onSwitchToUrl: () => void
+  setPopoverOpen: (open: boolean) => void
+}) => {
+  const addUploadTask = useSetAtom(addUploadTaskAtom)
+  const removeUploadTask = useSetAtom(removeUploadTaskAtom)
+  const acceptedFileTypes = useMemo(
+    () => ({
+      'application/pdf': ['.pdf'],
+      'application/msword': ['.doc', '.docx'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        ['.docx'],
+      'application/vnd.ms-powerpoint': ['.ppt', '.pptx'],
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+        ['.pptx'],
+      'image/png': ['.png'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+    }),
+    [],
+  )
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) =>
+      uploadFile(file, (progress) => {
+        console.log('上传进度:', progress)
+      }),
+  })
+  const onDrop = useCallback(
+    (acceptedFiles: Array<File>) => {
+      if (!acceptedFiles.length) return
+      setPopoverOpen(true)
+      acceptedFiles.forEach((file) => {
+        const id = uuidv4()
+        addUploadTask({ id, file_name: file.name, file_type: file.type })
 
-const FileUploader = ({ onSwitchToUrl }: { onSwitchToUrl: () => void }) => {
-  const onDrop = useCallback((acceptedFiles: Array<File>) => {
-    console.log('拖拽或选择的文件:', acceptedFiles)
-    uploadFile(acceptedFiles[0], (progress) => {
-      console.log('上传进度:', progress)
-    })
-  }, [])
+        uploadMutation.mutate(file, {
+          onSuccess: async ({ data }) => {
+            await taskCreate(data.id)
+            removeUploadTask(id)
+          },
+          onError: () => {
+            removeUploadTask(id)
+          },
+        })
+      })
+    },
+    [uploadMutation],
+  )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

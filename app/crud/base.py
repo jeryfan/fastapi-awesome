@@ -130,7 +130,7 @@ class CRUDBase(Generic[ModelType]):
                 count_stmt = count_stmt.filter(*conditions)
             count_result = await db.execute(count_stmt)
             total = count_result.scalar()
-            return {"total": total, "items": trimmed}
+            return {"total": total, "list": trimmed}
 
         return trimmed
 

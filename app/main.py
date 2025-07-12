@@ -1,10 +1,11 @@
 from fastapi import FastAPI
-from app.api import auth, files
+from app.api import auth, files, task
 
 
 def config_router(app: FastAPI, prefix: str = "/api"):
     app.include_router(auth.router, prefix=prefix)
     app.include_router(files.router, prefix=prefix)
+    app.include_router(task.router, prefix=prefix)
 
 
 app = FastAPI()

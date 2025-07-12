@@ -1,0 +1,39 @@
+const Test = () => {
+    return ( 
+        <>
+        <div className="relative flex items-center overflow-x-hidden overflow-y-visible px-2 justify-start w-[16rem] h-[2.5rem] mb-3 group hover:bg-blue-hover rounded-lg group transition-all duration-300 ease-out opacity-80 cursor-not-allowed"><img src="data:image/svg+xml,%3csvg%20width='20'%20height='21'%20viewBox='0%200%2020%2021'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M7.315%201.95306C7.47128%201.79678%207.68324%201.70898%207.90426%201.70898H14.4443C15.6716%201.70898%2016.6665%202.70391%2016.6665%203.93121V16.1534C16.6665%2017.3807%2015.6716%2018.3757%2014.4443%2018.3757H5.55539C4.32809%2018.3757%203.33317%2017.3807%203.33317%2016.1534V6.28007C3.33317%206.05906%203.42097%205.8471%203.57725%205.69082L7.315%201.95306Z'%20fill='%23FE5A4E'/%3e%3cpath%20d='M7.9165%201.70898H7.84502C7.624%201.70898%207.41204%201.79678%207.25576%201.95306L3.57725%205.63157C3.42097%205.78785%203.33317%205.99982%203.33317%206.22083V6.29232C3.33317%206.0622%203.51972%205.87565%203.74984%205.87565H6.78014C7.17762%205.87565%207.49984%205.55343%207.49984%205.15595V2.12565C7.49984%201.89553%207.68639%201.70898%207.9165%201.70898Z'%20fill='%23FF9E8F'/%3e%3cg%20clip-path='url(%23clip0_6666_4506)'%3e%3cpath%20d='M13.1403%2013.062C12.4881%2013.0137%2011.8601%2012.7721%2011.3528%2012.3373C10.3625%2012.5547%209.42046%2012.8687%208.47843%2013.2552C7.72964%2014.5837%207.02916%2015.26%206.42529%2015.26C6.30452%2015.26%206.15959%2015.2359%206.06297%2015.1634C5.79727%2015.0427%205.65234%2014.777%205.65234%2014.5112C5.65234%2014.2939%205.70065%2013.69%207.99534%2012.6997C8.52674%2011.7335%208.93737%2010.7431%209.27553%209.70449C8.98568%209.12478%208.35766%207.69965%208.79244%206.97502C8.93737%206.70932%209.22722%206.56439%209.54123%206.58854C9.78278%206.58854%2010.0243%206.70932%2010.1693%206.90255C10.4833%207.33734%2010.4591%208.25521%2010.0485%209.60787C10.435%2010.3325%2010.9422%2010.9847%2011.5461%2011.5402C12.0533%2011.4436%2012.5606%2011.3712%2013.0678%2011.3712C14.2031%2011.3953%2014.3722%2011.9267%2014.348%2012.2407C14.348%2013.062%2013.5509%2013.062%2013.1403%2013.062ZM6.37698%2014.5596L6.44945%2014.5354C6.78761%2014.4146%207.05331%2014.1731%207.24655%2013.8591C6.88423%2014.004%206.59437%2014.2455%206.37698%2014.5596ZM9.58954%207.31318H9.51708C9.49292%207.31318%209.44461%207.31318%209.42046%207.33734C9.32384%207.74796%209.3963%208.18275%209.56539%208.56922C9.71031%208.15859%209.71031%207.72381%209.58954%207.31318ZM9.75862%2010.8156L9.73447%2010.8639L9.71031%2010.8398C9.49292%2011.3953%209.25138%2011.9509%208.98568%2012.4823L9.03399%2012.4581V12.5064C9.56539%2012.3132%2010.1451%2012.1441%2010.6765%2012.0233L10.6523%2011.9992H10.7248C10.3625%2011.6369%2010.0243%2011.2262%209.75862%2010.8156ZM13.0436%2012.0958C12.8263%2012.0958%2012.633%2012.0958%2012.4156%2012.1441C12.6572%2012.2649%2012.8987%2012.3132%2013.1403%2012.3373C13.3093%2012.3615%2013.4784%2012.3373%2013.6234%2012.289C13.6234%2012.2166%2013.5267%2012.0958%2013.0436%2012.0958Z'%20fill='white'/%3e%3c/g%3e%3cdefs%3e%3cclipPath%20id='clip0_6666_4506'%3e%3crect%20width='8.69565'%20height='8.69565'%20fill='white'%20transform='translate(5.65234%206.56348)'/%3e%3c/clipPath%3e%3c/defs%3e%3c/svg%3e" className="min-w-[1.6rem] mr-2 group-hover:min-w-[1.8rem] duration-100"><span className="block truncate overflow-hidden relative font-semibold text-ellipsis max-w-[calc(100%-4rem)] text-sm">孝经.一卷.唐.唐玄宗李隆基.注.元相台岳氏荆溪家塾刊本.中国国家图书馆藏_副本.pdf</span><div className="flex items-center justify-center ml-auto relative top-[0.1rem] h-6 w-6"><span role="img" className="anticon text-[2rem] absolute inset-0 flex items-center justify-center text-[#00B365] transition-all duration-500 opacity-0 scale-75 -rotate-90"><svg width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false" className=""><use xlink:href="#icon-CheckCircleFilled"></use></svg></span
+        <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 opacity-100 scale-100">
+
+        </div>
+        </div>
+        <div className="w-4 h-4 ml-auto mr-1 mr-2 inline-block animate-pulse">
+            <div className="index-module__loader___o7BfO"></div>
+        </div>
+            <span className="text-sm whitespace-nowrap">上传中</span>
+        </div>
+        </>
+     );
+}
+ 
+export default Test;
+
+
+
+@keyframes index-module__rotation___Y2GFe {
+  0% {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+{
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+    background: conic-gradient(from 0deg, #0d53de, #2b69e2 108deg, #0d14de00 360deg);
+    box-sizing: border-box;
+    animation: index-module__rotation___Y2GFe 2s linear infinite;
+}

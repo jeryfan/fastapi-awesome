@@ -2,13 +2,13 @@ from app import crud
 from app.celery_app import celery_app
 import time
 import asyncio
-from app.models.db import get_db
+from app.models.db import AsyncSessionLocal
 from app.models.task import TaskStatus
 
 
 async def task_execute(task_id, file_id):
 
-    async with get_db() as db:
+    async with AsyncSessionLocal() as db:
 
         task = await crud.task.get(db, filters={"task_id": task_id})
         await crud.task.update(db, task, {"status": TaskStatus.PROGRESS})
@@ -21,6 +21,7 @@ async def task_execute(task_id, file_id):
 
 @celery_app.task(bind=True)
 def task_create(self, file_id):
+    print(f"Task started with file_id: {file_id}")
     task_id = self.request.id
 
     asyncio.run(task_execute(task_id, file_id))

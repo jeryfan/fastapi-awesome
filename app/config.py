@@ -39,8 +39,13 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
     CELERY_BROKER_DB: int = 5
     CELERY_RESULT_DB: int = 6
-    CELERY_BROKER_URL: str = f"redis://{REDIS_HOST}:{REDIS_PORT}/{CELERY_BROKER_DB}"
-    CELERY_RESULT_BACKEND: str = f"redis://{REDIS_HOST}:{REDIS_PORT}/{CELERY_RESULT_DB}"
+    REDIS_PASSWORD: str = "123456"
+    CELERY_BROKER_URL: str = (
+        f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{CELERY_BROKER_DB}"
+    )
+    CELERY_RESULT_BACKEND: str = (
+        f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{CELERY_RESULT_DB}"
+    )
 
     STORAGE_TYPE: str = "opendal"  # opendal or local
     OPENDAL_SCHEME: str = "fs"

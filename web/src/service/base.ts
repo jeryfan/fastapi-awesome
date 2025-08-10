@@ -125,25 +125,27 @@ const baseFetch = async <T>(
 
     const responseData: ApiResponse<T> = await response.json()
 
+    console.log(responseData, 2332)
+
     if (responseData.code !== 200) {
       if (!silent) toast.error(responseData.msg || '请求失败')
 
-      if (responseData.code === 401) {
-        const [refreshErr] = await asyncRunSafe(refreshAccessTokenOrRelogin(TIME_OUT))
-        if (!refreshErr) {
-          return baseFetch<T>(url, fetchOptions, {
-            bodyStringify,
-            needAllResponseContent,
-            deleteContentType,
-            getAbortController,
-            silent,
-          })
-        } else {
-          if (location.pathname !== '/login') globalThis.location.href = '/login'
-        }
-      } else if (responseData.code === 403 && responseData.msg === 'already_setup') {
-        globalThis.location.href = `${globalThis.location.origin}/signin`
-      }
+      // if (responseData.code === 401) {
+      //   const [refreshErr] = await asyncRunSafe(refreshAccessTokenOrRelogin(TIME_OUT))
+      //   if (!refreshErr) {
+      //     return baseFetch<T>(url, fetchOptions, {
+      //       bodyStringify,
+      //       needAllResponseContent,
+      //       deleteContentType,
+      //       getAbortController,
+      //       silent,
+      //     })
+      //   } else {
+      //     if (location.pathname !== '/login') globalThis.location.href = '/login'
+      //   }
+      // } else if (responseData.code === 403 && responseData.msg === 'already_setup') {
+      //   globalThis.location.href = `${globalThis.location.origin}/signin`
+      // }
 
       throw new Error(responseData.msg || '请求失败')
     }

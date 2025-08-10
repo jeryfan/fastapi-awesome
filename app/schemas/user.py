@@ -4,11 +4,11 @@ from typing import Optional
 
 class UserBase(BaseModel):
     name: Optional[str] = None
-    email: EmailStr
+    email: Optional[EmailStr] = None
 
 
 class UserCreate(UserBase):
-    password: str
+    password: Optional[str] = None
 
 class LoginRequest(BaseModel):
     email: EmailStr

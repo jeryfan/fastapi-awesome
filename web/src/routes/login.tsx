@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -28,6 +28,7 @@ export const Route = createFileRoute('/login')({
 
 function LoginComponent() {
   const navigate = useNavigate()
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
 
   const form = useForm<LoginPayload>({
@@ -58,8 +59,25 @@ function LoginComponent() {
   }
 
   const handleGithubLogin = () => {
-    // Redirect to backend's GitHub OAuth initiation endpoint
-    window.location.href = `${import.meta.env.VITE_API_PREFIX}/oauth/authorize/github`
+    // 带上相对路径的 next，避免绝对地址被后端拒绝
+    const params = new URLSearchParams()
+    const current = router.state.location.search?.redirect as string | undefined
+    if (current && current.startsWith('/')) params.set('next', current)
+    window.location.href = `/api/oauth/authorize/github${params.toString() ? `?${params.toString()}` : ''}`
+  }
+
+  // 处理后端回跳附带的 access_token
+  // /login?access_token=xxx&next=/upload#oauth_success
+  const url = new URL(globalThis.location.href)
+  const tokenFromCallback = url.searchParams.get('access_token')
+  const nextPath = (url.searchParams.get('next') || '/upload') as string
+  if (tokenFromCallback) {
+    localStorage.setItem('access_token', tokenFromCallback)
+    toast.success('OAuth 登录成功！')
+    // 清理 URL 上的 token 参数，避免泄露
+    url.searchParams.delete('access_token')
+    history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
+    navigate({ to: nextPath })
   }
 
   return (

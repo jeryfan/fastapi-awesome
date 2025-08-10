@@ -22,8 +22,10 @@ class CRUDUser(CRUDBase[User]):
     async def create_user(self, db: AsyncSession, user: UserCreate) -> User:
         """创建新用户。"""
 
-        hashed_password = get_password_hash(user.password)
-        user.password = hashed_password
+        # 允许 OAuth-only 用户没有密码
+        if user.password:
+            hashed_password = get_password_hash(user.password)
+            user.password = hashed_password
 
         return await self.insert(db, obj_in=user)
 
@@ -52,8 +54,15 @@ class CRUDUser(CRUDBase[User]):
         self, db: AsyncSession, provider: str, provider_user_id: str
     ) -> Optional[OAuthAccount]:
         """根据提供商和提供商用户ID获取OAuth账号。"""
-        
-        pass
+        stmt = (
+            select(OAuthAccount)
+            .where(
+                OAuthAccount.provider == provider,
+                OAuthAccount.provider_user_id == provider_user_id,
+            )
+        )
+        result = await db.execute(stmt)
+        return result.scalars().first()
 
     async def create_oauth_account(
         self,
@@ -66,7 +75,15 @@ class CRUDUser(CRUDBase[User]):
         expires_at: Optional[int] = None,
     ) -> OAuthAccount:
         """创建新的OAuth账号。"""
-        pass
+        data = {
+            "user_id": user_id,
+            "provider": provider,
+            "provider_user_id": provider_user_id,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+        }
+        # expires_at 如果是时间戳（秒），可转换为 datetime；这里直接忽略或保持 None
+        return await CRUDBase[OAuthAccount](OAuthAccount).insert(db, obj_in=data)
 
 
 user_crud = CRUDUser(User)

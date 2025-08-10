@@ -8,6 +8,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 import Sidebar from '../components/Sidebar'
 import TanStackQueryLayout from '../integrations/tanstack-query/layout.tsx'
+import { Toaster } from '../components/ui/sonner'
 
 import type { QueryClient } from '@tanstack/react-query'
 
@@ -29,6 +30,7 @@ function RootComponent() {
       </div>
       {/* <TanStackRouterDevtools /> */}
       <TanStackQueryLayout />
+      <Toaster richColors position="top-right" />
     </div>
   )
 }

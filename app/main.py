@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from app.api import auth, files, task
+from app.api.v1 import chat
 from app.handlers import exception_handler
 
 
@@ -7,6 +8,7 @@ def config_router(app: FastAPI, prefix: str = "/api"):
     app.include_router(auth.router, prefix=prefix)
     app.include_router(files.router, prefix=prefix)
     app.include_router(task.router, prefix=prefix)
+    app.include_router(chat.router, prefix=prefix)
 
 
 app = FastAPI()

@@ -22,6 +22,7 @@ dependencies = [
     "celery[redis]>=5.4.0",
     "flower>=2.0.1",
     "opendal>=0.45.20",
+    "openai>=1.99.6",
 ]
 
 [tool.setuptools]

@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from httpx import AsyncClient # 用于发送 HTTP 请求
 from app.config import settings
 from typing import Dict, Any, Optional
+from urllib.parse import quote_plus
 
 # OAuth 提供商配置字典
 OAUTH_PROVIDERS = {
@@ -58,19 +59,25 @@ async def get_oauth_authorization_url(provider: str, redirect_uri: str, state: s
     client_id = provider_config["client_id"]
     scope = provider_config.get("scope", "")
 
+    if not client_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"未配置 {provider} 的 client_id，请在 .env 中设置并重启服务。",
+        )
+
     # 根据不同提供商构造授权URL
     if provider == "wechat":
         # 微信 PC 扫码登录
-        return (f"{provider_config['authorize_url']}?appid={client_id}&redirect_uri={redirect_uri}"
-                f"&response_type=code&scope={scope}&state={state}#wechat_redirect")
+        return (f"{provider_config['authorize_url']}?appid={client_id}&redirect_uri={quote_plus(redirect_uri)}"
+                f"&response_type=code&scope={quote_plus(scope)}&state={quote_plus(state)}#wechat_redirect")
     elif provider == "feishu":
         # 飞书
-        return (f"{provider_config['authorize_url']}?app_id={client_id}&redirect_uri={redirect_uri}"
-                f"&response_type=code&state={state}")
+        return (f"{provider_config['authorize_url']}?app_id={client_id}&redirect_uri={quote_plus(redirect_uri)}"
+                f"&response_type=code&state={quote_plus(state)}")
     else:
         # 通用 OAuth 2.0 授权码模式 (GitHub, Google)
-        return (f"{provider_config['authorize_url']}?client_id={client_id}&redirect_uri={redirect_uri}"
-                f"&response_type=code&scope={scope}&state={state}")
+        return (f"{provider_config['authorize_url']}?client_id={client_id}&redirect_uri={quote_plus(redirect_uri)}"
+                f"&response_type=code&scope={quote_plus(scope)}&state={quote_plus(state)}")
 
 async def get_oauth_token_and_userinfo(provider: str, code: str, redirect_uri: str) -> Dict[str, Any]:
     """

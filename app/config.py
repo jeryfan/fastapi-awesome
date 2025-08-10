@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "sSIf8zhJFU68jo_-s73KzxWo3CHEr4vHSJdSjxb2Sio"
     ALGORITHM: str = "HS256"
 
-    GITHUB_CLIENT_ID: str = ""
-    GITHUB_CLIENT_SECRET: str = ""
+    GITHUB_CLIENT_ID: str = "Ov23li39xZkRg8sUr8PI"
+    GITHUB_CLIENT_SECRET: str = "98a4e18c2d9115f869ebee2cd7d76fe4263cac01"
 
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
@@ -27,6 +27,11 @@ class Settings(BaseSettings):
 
     FEISHU_APP_ID: str = ""
     FEISHU_APP_SECRET: str = ""
+
+    # 前端站点根地址，用于 OAuth 回跳后 302 到前端
+    FRONTEND_BASE_URL: str = "http://localhost:3000"
+    # 登录页路径
+    FRONTEND_LOGIN_PATH: str = "/login"
 
     PGUSER: str = "fastapi"
     POSTGRES_PASSWORD: str = "fastapi"

@@ -65,7 +65,7 @@ class CRUDBase(Generic[ModelType]):
         self,
         db: AsyncSession,
         *,
-        skip: int = 0,
+        page: int = 1,
         limit: int = 100,
         filters: Optional[Dict[str, Any]] = None,
         or_filters: Optional[List[Dict[str, Any]]] = None,
@@ -103,7 +103,7 @@ class CRUDBase(Generic[ModelType]):
                     )
             if order_clauses:
                 stmt = stmt.order_by(*order_clauses)
-
+        skip = (page - 1) * limit
         stmt = stmt.offset(skip).limit(limit)
         result = await db.execute(stmt)
 

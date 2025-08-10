@@ -21,13 +21,13 @@ export interface AuthResponse {
 }
 
 export async function login(data: LoginPayload) {
-  return post<AuthResponse>('/auth/login', { body: data })
+  return post<AuthResponse>('/auth/login', { body: data }, { silent: true })
 }
 
 export async function register(data: RegisterPayload) {
-  return post('/auth/register', { body: data })
+  return post('/auth/register', { body: data }, { silent: true })
 }
 
 export async function logout() {
-  return post('/auth/logout')
+  return post('/auth/logout', {}, { silent: true })
 }

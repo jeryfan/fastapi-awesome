@@ -128,7 +128,6 @@ const baseFetch = async <T>(
     console.log(responseData, 2332)
 
     if (responseData.code !== 200) {
-      if (!silent) toast.error(responseData.msg || '请求失败')
 
       // if (responseData.code === 401) {
       //   const [refreshErr] = await asyncRunSafe(refreshAccessTokenOrRelogin(TIME_OUT))

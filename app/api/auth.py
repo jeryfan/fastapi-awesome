@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from fastapi import Depends, APIRouter, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.db import get_db
@@ -15,8 +15,9 @@ import logging
 
 from app.core.oauth import get_oauth_authorization_url, get_oauth_token_and_userinfo
 from app.schemas.response import ApiResponse, MessageResponse
+from app.core.router import APIRoute
 
-router = APIRouter()
+router = APIRouter(route_class=APIRoute)
 logger = logging.getLogger(__name__)
 
 # OAuth2PasswordBearer 用于从请求头中获取 token
@@ -76,16 +77,14 @@ async def register_user(
         # 检查邮箱是否已被注册
         user = await user_crud.get_by_email(db, user_in.email)
         if user:
-            return ApiResponse(
-                code=status.HTTP_400_BAD_REQUEST, message="该邮箱已被注册"
-            )
+            return ApiResponse(code=status.HTTP_400_BAD_REQUEST, msg="该邮箱已被注册")
         # 创建新用户
         new_user = await user_crud.create_user(db, user_in)
-        return ApiResponse(data=new_user, message="注册成功")
+        return ApiResponse(data=new_user, msg="注册成功")
     except Exception as e:
         logger.exception(f"注册失败: {e}")
         return ApiResponse(
-            code=status.HTTP_500_INTERNAL_SERVER_ERROR, message=f"注册失败: {e}"
+            code=status.HTTP_500_INTERNAL_SERVER_ERROR, msg=f"注册失败: {e}"
         )
 
 
@@ -107,7 +106,7 @@ async def login_for_access_token(
             or not verify_password(login_data.password, user.password)
         ):
             return ApiResponse(
-                code=status.HTTP_401_UNAUTHORIZED, message="邮箱或密码不正确"
+                code=status.HTTP_401_UNAUTHORIZED, msg="邮箱或密码不正确"
             )
 
         # 创建 access token
@@ -119,19 +118,16 @@ async def login_for_access_token(
     except Exception as e:
         logger.exception(f"登录失败: {e}")
         return ApiResponse(
-            code=status.HTTP_500_INTERNAL_SERVER_ERROR, message=f"登录失败: {e}"
+            code=status.HTTP_500_INTERNAL_SERVER_ERROR, msg=f"登录失败: {e}"
         )
-    return ApiResponse(
-        data={"access_token": access_token, "token_type": "bearer"},
-        code=status.HTTP_200_OK,
-    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post("/logout")
 async def logout(current_user: Annotated[User, Depends(get_current_user)]):
     # Here you can add logic to invalidate the token, e.g., add it to a blacklist.
     # For simplicity, we'll just return a success message.
-    return ApiResponse(data=None, code=status.HTTP_200_OK)
+    pass
 
 
 @router.get("/me", response_model=ApiResponse[User])
@@ -141,7 +137,7 @@ async def read_users_me(
     """
     获取当前登录用户的信息。
     """
-    return ApiResponse(data=current_user, message="获取用户信息成功")
+    return current_user
 
 
 # --- OAuth Endpoints ---
@@ -175,11 +171,11 @@ async def oauth_authorize(provider: str, request: Request):
         )
     except HTTPException as e:
         logger.error(f"OAuth authorization failed for {provider}: {e.detail}")
-        return ApiResponse(code=e.status_code, message=f"OAuth 授权失败: {e.detail}")
+        return ApiResponse(code=e.status_code, msg=f"OAuth 授权失败: {e.detail}")
     except Exception as e:
         logger.exception(f"Unexpected error during OAuth authorization for {provider}")
         return ApiResponse(
-            code=status.HTTP_500_INTERNAL_SERVER_ERROR, message=f"OAuth 授权失败: {e}"
+            code=status.HTTP_500_INTERNAL_SERVER_ERROR, msg=f"OAuth 授权失败: {e}"
         )
 
 
@@ -244,13 +240,13 @@ async def oauth_callback(
         else:
             return ApiResponse(
                 code=status.HTTP_400_BAD_REQUEST,
-                message=f"不支持的 OAuth 提供商: {provider}",
+                msg=f"不支持的 OAuth 提供商: {provider}",
             )
 
         if not provider_user_id:
             return ApiResponse(
                 code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                message="未能从 OAuth 提供商获取用户唯一ID",
+                msg="未能从 OAuth 提供商获取用户唯一ID",
             )
 
         # 检查是否已存在该 OAuth 账号
@@ -266,7 +262,7 @@ async def oauth_callback(
             if not user:
                 # 理论上不应该发生，除非数据库出现不一致
                 return ApiResponse(
-                    code=status.HTTP_500_INTERNAL_SERVER_ERROR, message="关联用户未找到"
+                    code=status.HTTP_500_INTERNAL_SERVER_ERROR, msg="关联用户未找到"
                 )
             logger.info(
                 f"Existing OAuth account found for {provider}, user ID: {user.id}"
@@ -305,14 +301,14 @@ async def oauth_callback(
         )
         return ApiResponse(
             data={"access_token": app_access_token, "token_type": "bearer"},
-            message="OAuth 登录成功",
+            msg="OAuth 登录成功",
         )
 
     except HTTPException as e:
         logger.error(f"OAuth callback failed for {provider}: {e.detail}")
-        return ApiResponse(code=e.status_code, message=f"OAuth 回调失败: {e.detail}")
+        return ApiResponse(code=e.status_code, msg=f"OAuth 回调失败: {e.detail}")
     except Exception as e:
         logger.exception(f"Unexpected error during OAuth callback for {provider}")
         return ApiResponse(
-            code=status.HTTP_500_INTERNAL_SERVER_ERROR, message=f"OAuth 回调失败: {e}"
+            code=status.HTTP_500_INTERNAL_SERVER_ERROR, msg=f"OAuth 回调失败: {e}"
         )

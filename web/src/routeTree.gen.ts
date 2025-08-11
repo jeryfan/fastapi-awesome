@@ -16,7 +16,9 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ChatIndexRouteImport } from './routes/chat/index'
 import { Route as DemoTanstackQueryRouteImport } from './routes/demo.tanstack-query'
+import { Route as ChatConversationIdRouteImport } from './routes/chat/$conversationId'
 
 const ViewRoute = ViewRouteImport.update({
   id: '/view',
@@ -53,9 +55,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChatIndexRoute = ChatIndexRouteImport.update({
+  id: '/chat/',
+  path: '/chat/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoTanstackQueryRoute = DemoTanstackQueryRouteImport.update({
   id: '/demo/tanstack-query',
   path: '/demo/tanstack-query',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatConversationIdRoute = ChatConversationIdRouteImport.update({
+  id: '/chat/$conversationId',
+  path: '/chat/$conversationId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -67,7 +79,9 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof TasksRoute
   '/upload': typeof UploadRoute
   '/view': typeof ViewRoute
+  '/chat/$conversationId': typeof ChatConversationIdRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/chat': typeof ChatIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -77,7 +91,9 @@ export interface FileRoutesByTo {
   '/tasks': typeof TasksRoute
   '/upload': typeof UploadRoute
   '/view': typeof ViewRoute
+  '/chat/$conversationId': typeof ChatConversationIdRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/chat': typeof ChatIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -88,7 +104,9 @@ export interface FileRoutesById {
   '/tasks': typeof TasksRoute
   '/upload': typeof UploadRoute
   '/view': typeof ViewRoute
+  '/chat/$conversationId': typeof ChatConversationIdRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/chat/': typeof ChatIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,7 +118,9 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/upload'
     | '/view'
+    | '/chat/$conversationId'
     | '/demo/tanstack-query'
+    | '/chat'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -110,7 +130,9 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/upload'
     | '/view'
+    | '/chat/$conversationId'
     | '/demo/tanstack-query'
+    | '/chat'
   id:
     | '__root__'
     | '/'
@@ -120,7 +142,9 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/upload'
     | '/view'
+    | '/chat/$conversationId'
     | '/demo/tanstack-query'
+    | '/chat/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -131,7 +155,9 @@ export interface RootRouteChildren {
   TasksRoute: typeof TasksRoute
   UploadRoute: typeof UploadRoute
   ViewRoute: typeof ViewRoute
+  ChatConversationIdRoute: typeof ChatConversationIdRoute
   DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
+  ChatIndexRoute: typeof ChatIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -185,11 +211,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chat/': {
+      id: '/chat/'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo/tanstack-query': {
       id: '/demo/tanstack-query'
       path: '/demo/tanstack-query'
       fullPath: '/demo/tanstack-query'
       preLoaderRoute: typeof DemoTanstackQueryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat/$conversationId': {
+      id: '/chat/$conversationId'
+      path: '/chat/$conversationId'
+      fullPath: '/chat/$conversationId'
+      preLoaderRoute: typeof ChatConversationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -203,7 +243,9 @@ const rootRouteChildren: RootRouteChildren = {
   TasksRoute: TasksRoute,
   UploadRoute: UploadRoute,
   ViewRoute: ViewRoute,
+  ChatConversationIdRoute: ChatConversationIdRoute,
   DemoTanstackQueryRoute: DemoTanstackQueryRoute,
+  ChatIndexRoute: ChatIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

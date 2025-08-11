@@ -8,21 +8,23 @@ from app.schemas.chat import (
     ChatCompletionRequest,
     ConversationCreate,
     ConversationList,
+    ConversationListOut,
     ConversationOut,
     MessageOut,
 )
-from typing import Annotated, List
+from typing import Annotated, Any, List
 from uuid import UUID
 import logging
 from app.core.router import APIRoute
 from app.crud.chat import conversation_crud, message_crud
 from app.core.llm.llm import llm_provider
+from app.schemas.response import ApiResponse
 
 router = APIRouter(route_class=APIRoute)
 logger = logging.getLogger(__name__)
 
 
-@router.post("/v1/conversations", response_model=ConversationOut)
+@router.post("/v1/conversation", response_model=ApiResponse[ConversationOut])
 async def api_create_conversation(
     payload: ConversationCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -31,12 +33,12 @@ async def api_create_conversation(
     conv = await conversation_crud.create_conversation(
         db, obj_in=payload, created_by=current_user.id
     )
-    return conv
+    return ApiResponse(data=conv)
 
 
-@router.get("/v1/conversations", response_model=List[ConversationOut])
+@router.get("/v1/conversation", response_model=ApiResponse[ConversationListOut])
 async def api_list_conversations(
-    list_in: ConversationList,
+    list_in: Annotated[ConversationList, Depends()],
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):
@@ -46,10 +48,11 @@ async def api_list_conversations(
         page=list_in.page,
         created_by=current_user.id,
     )
-    return convs
+    print("conversations", convs)
+    return ApiResponse(data=ConversationListOut(**convs))
 
 
-@router.get("/v1/conversations/{conv_id}", response_model=ConversationOut)
+@router.get("/v1/conversation/{id}", response_model=ConversationOut)
 async def api_get_conversation(id: UUID, db: AsyncSession = Depends(get_db)):
     conv = await conversation_crud.get_by_id(db, id=id)
     if not conv:
@@ -59,8 +62,14 @@ async def api_get_conversation(id: UUID, db: AsyncSession = Depends(get_db)):
     return conv
 
 
+@router.delete("/v1/conversation/{id}", response_model=ApiResponse[bool])
+async def api_delete_conversation(id: UUID, db: AsyncSession = Depends(get_db)):
+    await conversation_crud.delete(db, primary_key=id)
+    return ApiResponse[bool](success=True, data=True)
+
+
 @router.get(
-    "/v1/conversations/{conversation_id}/messages", response_model=List[MessageOut]
+    "/v1/conversation/{conversation_id}/messages", response_model=List[MessageOut]
 )
 async def api_get_messages(
     conversation_id: UUID,

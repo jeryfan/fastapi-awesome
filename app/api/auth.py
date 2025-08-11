@@ -121,7 +121,7 @@ async def login_for_access_token(
         return ApiResponse(
             code=status.HTTP_500_INTERNAL_SERVER_ERROR, msg=f"登录失败: {e}"
         )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return ApiResponse(data={"access_token": access_token, "token_type": "bearer"})
 
 
 @router.post("/logout")
@@ -142,6 +142,7 @@ async def read_users_me(
 
 
 # ================= OAuth 通过后端回调的登录 =================
+
 
 @router.get("/oauth/authorize/{provider}")
 async def oauth_authorize(provider: str, request: Request):
@@ -174,7 +175,9 @@ async def oauth_callback(
     code = request.query_params.get("code")
     state = request.query_params.get("state", "/")
     if not code:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="缺少授权码code")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="缺少授权码code"
+        )
 
     base_url = str(request.base_url).rstrip("/")
     redirect_uri = f"{base_url}/api/oauth/callback/{provider}"
@@ -205,7 +208,9 @@ async def oauth_callback(
         name = user_info.get("name")
 
     if not provider_user_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="无法获取第三方用户ID")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="无法获取第三方用户ID"
+        )
 
     # 查找是否已有对应的 oauth 绑定
     oauth_account = await user_crud.get_oauth_account(db, provider, provider_user_id)
@@ -217,7 +222,9 @@ async def oauth_callback(
         if email:
             user = await user_crud.get_by_email(db, email)
         if not user:
-            user = await user_crud.create_user(db, UserCreate(name=name or "", email=email, password=None))
+            user = await user_crud.create_user(
+                db, UserCreate(name=name or "", email=email, password=None)
+            )
         await user_crud.create_oauth_account(
             db,
             user_id=user.id,
@@ -228,16 +235,20 @@ async def oauth_callback(
 
     # 颁发本地 JWT 并重定向到前端
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(data={"sub": str(user.id)}, expires_delta=access_token_expires)
+    access_token = create_access_token(
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
+    )
 
     # 将 token 通过前端路由参数返回，或设置为 Cookie。这里采用路由参数并重定向到前端域名。
     next_url = state or "/"
     # 如果 state 是绝对地址可能引起开放重定向，生产应校验白名单。这里简单防护：仅允许相对路径。
     if next_url.startswith("http://") or next_url.startswith("https://"):
         next_url = "/"
-    frontend_base = settings.FRONTEND_BASE_URL.rstrip('/')
+    frontend_base = settings.FRONTEND_BASE_URL.rstrip("/")
     login_path = settings.FRONTEND_LOGIN_PATH or "/login"
-    redirect_target = f"{frontend_base}{login_path}?access_token={access_token}#oauth_success"
+    redirect_target = (
+        f"{frontend_base}{login_path}?access_token={access_token}#oauth_success"
+    )
     if next_url and next_url != login_path:
         redirect_target += f"&next={next_url}"
     return RedirectResponse(url=redirect_target)

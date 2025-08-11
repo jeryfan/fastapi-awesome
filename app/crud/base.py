@@ -71,7 +71,7 @@ class CRUDBase(Generic[ModelType]):
         or_filters: Optional[List[Dict[str, Any]]] = None,
         order_by: Optional[Union[str, List[str]]] = None,
         exclude_fields: Optional[List[str]] = None,
-        return_total: bool = False,
+        return_total: bool = True,
         select_fields: Optional[List[str]] = None,
         joins: Optional[List[Any]] = None,
     ) -> Union[List[ModelType], Dict[str, Any]]:

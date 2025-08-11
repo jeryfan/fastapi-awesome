@@ -42,8 +42,7 @@ class ChatCompletionResponse(BaseModel):
 
 
 class ConversationCreate(BaseModel):
-    title: Optional[str] = None
-    system_prompt: Optional[str] = None
+    title: Optional[str] = "New Conversation"
 
 
 class ConversationList(BaseModel):
@@ -59,6 +58,11 @@ class ConversationOut(BaseModel):
     updated_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
+
+class ConversationListOut(BaseModel):
+    total: int
+    list: List[ConversationOut]
 
 
 class MessageCreate(BaseModel):

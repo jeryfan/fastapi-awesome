@@ -6,7 +6,7 @@ source /workspace/.venv/bin/activate
 
 function migrate() {
   echo "start migrate"
-  alembic revision --autogenerate -m "update"
+  # alembic -c /workspace/app/alembic.ini revision --autogenerate -m "update"
   alembic -c /workspace/app/alembic.ini upgrade head
   echo "end migrate"
 }

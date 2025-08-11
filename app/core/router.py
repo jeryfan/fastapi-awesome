@@ -15,9 +15,9 @@ class APIRoute(Route):
         original_route_handler = super().get_route_handler()
 
         async def custom_route_handler(request: Request) -> Response:
-
+            print("request", request)
             response = await original_route_handler(request)
-
+            print("response", response)
             if isinstance(response, Response):
                 return response
 

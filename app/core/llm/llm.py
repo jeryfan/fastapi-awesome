@@ -170,7 +170,6 @@ class OpenAIProvider(ModelProvider):
         try:
             stream = await self.client.chat.completions.create(**payload)
             async for chunk in stream:
-                print("chunk:", chunk.model_dump())
                 # 将OpenAI的块模型转换为我们的SSE响应模型
                 # Pydantic的model_dump_json会自动处理None值
                 sse_chunk = ChatCompletionStreamResponse.model_validate(

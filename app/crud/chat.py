@@ -1,10 +1,11 @@
 from uuid import UUID
-from typing import Optional, List
+from typing import Any, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from app.crud.base import CRUDBase
 from app.models.chat import Conversation, Message
 from app.schemas.chat import ConversationCreate, MessageCreate, MessageUpdate
+from sqlalchemy.orm import selectinload
 
 
 class CRUDConversation(CRUDBase[Conversation]):
@@ -40,18 +41,22 @@ class CRUDMessage(CRUDBase[Message]):
     async def list_messages(
         self,
         db: AsyncSession,
+        conversation_id: UUID,
         page: int = 1,
         limit: int = 100,
         **kwargs,
-    ) -> List[Message]:
+    ) -> List[Conversation]:
         """列出会话的消息"""
 
-        return await self.query(
-            db,
-            page=page,
-            limit=limit,
-            filters=kwargs,
+        stmt = (
+            select(Conversation)
+            .where(Conversation.id == conversation_id)
+            .options(selectinload(Conversation.messages))
         )
+
+        result = await db.execute(stmt)
+        conversation = result.scalar_one_or_none()
+        return conversation
 
     async def create_message(
         self, db: AsyncSession, obj_in: MessageCreate, created_by: UUID

@@ -1,6 +1,6 @@
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ChatMessage(BaseModel):
@@ -108,3 +108,22 @@ class ChatCompletionStreamResponse(BaseModel):
     created: int
     model: str
     choices: List[ChatCompletionStreamChoice]
+
+
+class HistoryMessage(BaseModel):
+    id: str
+    role: str
+    content: Any
+    model: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ConversationHistoryResponse(BaseModel):
+    id: str
+    title: Optional[str] = None
+    current_model: str
+    messages: List[HistoryMessage]
+
+    model_config = ConfigDict(from_attributes=True)

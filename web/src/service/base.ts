@@ -32,6 +32,7 @@ export type IOnTTSChunk = (messageId: string, audioStr: string, audioType?: stri
 export type IOnTTSEnd = (messageId: string, audioStr: string, audioType?: string) => void
 
 export type IOtherOptions = {
+  returnBody?: boolean
   bodyStringify?: boolean
   needAllResponseContent?: boolean
   deleteContentType?: boolean
@@ -71,13 +72,14 @@ const baseFetch = async <T>(
   url: string,
   fetchOptions: FetchOptionType,
   {
+    returnBody = false,
     bodyStringify = true,
     needAllResponseContent,
     deleteContentType,
     getAbortController,
     silent,
   }: IOtherOptions = {}
-): Promise<ApiResponse<T>> => {
+): Promise<ApiResponse<T> | Response> => {
   const options: typeof baseOptions & FetchOptionType = Object.assign({}, baseOptions, fetchOptions)
   const accessToken = getAccessToken()
 
@@ -122,6 +124,10 @@ const baseFetch = async <T>(
       fetch(urlWithPrefix, options as RequestInit),
       new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('请求超时')), TIME_OUT)),
     ])
+
+    if (returnBody) {
+      return response
+    }
 
     const responseData: ApiResponse<T> = await response.json()
 
@@ -189,6 +195,7 @@ export const upload = (options: any, url?: string, searchParams?: string): Promi
 export const request = async <T>(url: string, options = {}, otherOptions?: IOtherOptions) => {
   try {
     const resp = await baseFetch<T>(url, options, otherOptions || {})
+    if (otherOptions?.returnBody) return resp
     return resp.data as T
   } catch (error) {
     console.error(error)

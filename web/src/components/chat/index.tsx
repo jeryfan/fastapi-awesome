@@ -1,200 +1,122 @@
 import {
   Bubble,
-  Conversations,
   Prompts,
   Sender,
   Suggestion,
   ThoughtChain,
   XProvider,
+  XStream,
+  useXAgent,
+  useXChat,
 } from '@ant-design/x'
 import { Button, Card, Divider, Flex, Radio, Spin, Typography } from 'antd'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useState } from 'react'
 
-import {
-  AlipayCircleOutlined,
-  BulbOutlined,
-  CheckCircleOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  GithubOutlined,
-  LoadingOutlined,
-  SmileOutlined,
-  StopOutlined,
-  UserOutlined,
-} from '@ant-design/icons'
-import { Plus } from 'lucide-react'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import { useNavigate, useParams } from '@tanstack/react-router'
-import type { ConversationsProps } from '@ant-design/x'
-import type { ConfigProviderProps, GetProp } from 'antd'
-import {
-  conversationAdd,
-  conversationDelete,
-  getConversationList,
-} from '@/service/chat'
+import { BulbOutlined, SmileOutlined, UserOutlined } from '@ant-design/icons'
+import markdownit from 'markdown-it'
+import { useParams } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
+import Conversation from './conversation'
+import type { BubbleProps } from '@ant-design/x'
+import type { GetProp } from 'antd'
+import { chatCompletion, getConversationMessages } from '@/service/chat'
+
+const md = markdownit({ html: true, breaks: true })
+const renderMarkdown: BubbleProps['messageRender'] = (content) => {
+  console.log('content', content)
+
+  return (
+    <Typography>
+      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: used in demo */}
+      <div dangerouslySetInnerHTML={{ __html: md.render(content) }} />
+    </Typography>
+  )
+}
+const roles: GetProp<typeof Bubble.List, 'roles'> = {
+  assistant: {
+    placement: 'start',
+    avatar: { icon: <UserOutlined />, style: { background: '#fde3cf' } },
+  },
+  user: {
+    placement: 'end',
+    avatar: { icon: <UserOutlined />, style: { background: '#87d068' } },
+  },
+}
 
 const Chat = () => {
-  const [value, setValue] = React.useState('')
+  const [inputValue, setInputValue] = useState('')
 
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
-  const [keyword, setKeyword] = useState('')
+  const { conversationId } = useParams({ strict: false })
 
-  const {
-    data: conversations,
-    isFetching: isConversationLoading,
-    refetch: conversatonRefetch,
-  } = useQuery({
-    queryKey: ['conversations', page, limit, keyword],
-    queryFn: () => getConversationList(page, limit, keyword),
-    initialData: { list: [], total: 0 },
-  })
-  console.log(conversations)
-
-  const { mutate: handleConversationAdd } = useMutation({
-    mutationFn: () => conversationAdd(),
-    onSuccess: () => {
-      conversatonRefetch()
-    },
-    onError: (error: any) => {
-      toast.error('会话创建失败', {
-        description: error.msg || '请稍后重试。',
+  const [agent] = useXAgent<string, { message: string }, string>({
+    request: async ({ message }, { onSuccess, onUpdate }) => {
+      const response = await chatCompletion(conversationId as string, {
+        messages: [{ role: 'user', content: message }],
+        conversation_id: conversationId,
       })
-    },
-  })
-
-  const menuConfig: ConversationsProps['menu'] = (conversation) => ({
-    items: [
-      {
-        label: 'Operation 1',
-        key: 'operation1',
-        icon: <EditOutlined />,
-      },
-      {
-        label: '删除',
-        key: 'delete',
-        icon: <DeleteOutlined />,
-        danger: true,
-      },
-    ],
-    onClick: async (menuInfo) => {
-      menuInfo.domEvent.stopPropagation()
-      if (menuInfo.key === 'delete') {
-        await conversationDelete(conversation.key)
-        await conversatonRefetch()
+      let fullContent = ''
+      for await (const chunk of XStream({
+        readableStream: response.body,
+      })) {
+        const data = chunk.data
+        if (data.includes('DONE')) {
+          onSuccess([fullContent])
+        } else {
+          const jsonData = JSON.parse(data)
+          const content = jsonData.choices[0].delta.content || ''
+          fullContent += content
+          onUpdate(fullContent)
+        }
       }
     },
   })
 
-  const [activeKey, setActiveKey] = useState('')
+  // Chat messages
+  const { onRequest, messages } = useXChat({
+    agent,
+  })
 
-  const { conversationId } = useParams({ strict: false })
-  const navigate = useNavigate()
+  const { data: messageHistory } = useQuery({
+    queryKey: ['messages'],
+    queryFn: () => getConversationMessages(conversationId as string),
+    enabled: !!conversationId,
+  })
 
-  const handleSelectConversation = useCallback(
-    (convId: string) => {
-      setActiveKey(convId)
-      navigate({
-        to: '/chat/$conversationId',
-        params: {
-          conversationId: convId,
-        },
-      })
-    },
-    [navigate],
-  )
-
-  useEffect(() => {
-    if (conversationId) {
-      handleSelectConversation(conversationId)
-    }
-  }, [conversationId])
+  console.log('messageHistory', messageHistory)
 
   return (
     <>
       <Card>
         <XProvider direction="ltr">
           <Flex style={{ height: '90vh' }} gap={12}>
-            <Flex vertical gap={8}>
-              <Button onClick={() => handleConversationAdd()}>
-                <Plus />
-                新聊天
-              </Button>
-              {isConversationLoading ? (
-                <Spin />
-              ) : (
-                <Conversations
-                  menu={menuConfig}
-                  style={{ width: 200 }}
-                  activeKey={activeKey}
-                  onActiveChange={(key: string) =>
-                    handleSelectConversation(key)
-                  }
-                  items={conversations.list?.map((item: any) => ({
-                    key: item.id,
-                    label: item.title,
-                  }))}
-                />
-              )}
-            </Flex>
+            <Conversation />
             <Divider type="vertical" style={{ height: '100%' }} />
             <Flex vertical style={{ flex: 1 }} gap={8}>
               <Bubble.List
+                roles={roles}
                 style={{ flex: 1 }}
-                items={[
-                  {
-                    key: '1',
-                    placement: 'end',
-                    content: 'Hello Ant Design X!',
-                    avatar: { icon: <UserOutlined /> },
-                  },
-                  {
-                    key: '2',
-                    content: 'Hello World!',
-                  },
-                  {
-                    key: '2',
-                    content: '',
-                    loading: true,
-                  },
-                ]}
+                items={messages.map(({ id, message, status }) => {
+                  console.log('message', message)
+
+                  return {
+                    key: id,
+                    role: status === 'local' ? 'user' : 'assistant',
+                    content: renderMarkdown(message || ''),
+                  }
+                })}
               />
-              <Prompts
-                items={[
-                  {
-                    key: '1',
-                    icon: <BulbOutlined style={{ color: '#FFD700' }} />,
-                    label: 'Ignite Your Creativity',
-                  },
-                  {
-                    key: '2',
-                    icon: <SmileOutlined style={{ color: '#52C41A' }} />,
-                    label: 'Tell me a Joke',
-                  },
-                ]}
-              />
-              <Suggestion
-                items={[{ label: 'Write a report', value: 'report' }]}
-              >
-                {({ onTrigger, onKeyDown }) => {
-                  return (
-                    <Sender
-                      value={value}
-                      onChange={(nextVal) => {
-                        if (nextVal === '/') {
-                          onTrigger()
-                        } else if (!nextVal) {
-                          onTrigger(false)
-                        }
-                        setValue(nextVal)
-                      }}
-                      onKeyDown={onKeyDown}
-                      placeholder='Type "/" to trigger suggestion'
-                    />
-                  )
+
+              <Sender
+                value={inputValue}
+                loading={agent.isRequesting()}
+                onChange={(nextVal) => {
+                  setInputValue(nextVal)
                 }}
-              </Suggestion>
+                placeholder=""
+                onSubmit={(val) => {
+                  onRequest(val)
+                }}
+              />
             </Flex>
           </Flex>
         </XProvider>

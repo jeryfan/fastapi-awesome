@@ -131,8 +131,6 @@ const baseFetch = async <T>(
 
     const responseData: ApiResponse<T> = await response.json()
 
-    console.log(responseData, 2332)
-
     if (responseData.code !== 200) {
 
       // if (responseData.code === 401) {

@@ -10,7 +10,7 @@ import {
   useXChat,
 } from '@ant-design/x'
 import { Button, Card, Divider, Flex, Radio, Spin, Typography } from 'antd'
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 import { BulbOutlined, SmileOutlined, UserOutlined } from '@ant-design/icons'
 import markdownit from 'markdown-it'
@@ -71,18 +71,40 @@ const Chat = () => {
     },
   })
 
-  // Chat messages
-  const { onRequest, messages } = useXChat({
-    agent,
-  })
-
-  const { data: messageHistory } = useQuery({
-    queryKey: ['messages'],
+  const {
+    data: messageHistory,
+    isLoading,
+    isSuccess,
+  } = useQuery({
+    queryKey: ['messages', conversationId],
     queryFn: () => getConversationMessages(conversationId as string),
     enabled: !!conversationId,
   })
 
-  console.log('messageHistory', messageHistory)
+  const isHistoryLoaded = useRef(false)
+
+  const { onRequest, messages, setMessages } = useXChat({
+    agent,
+  })
+
+  useEffect(() => {
+    if (isSuccess && messageHistory?.messages) {
+      const historyMessages = messageHistory.messages.map((msg) => ({
+        id: msg.id,
+        status: msg.role === 'user' ? 'local' : 'ai',
+        message: msg.content,
+      }))
+
+      setMessages(historyMessages)
+      isHistoryLoaded.current = true
+    }
+  }, [isSuccess, messageHistory, setMessages, conversationId])
+
+  // console.log('messages', messages, messageHistory)
+
+  if (isLoading) {
+    return <Spin fullscreen tip="正在加载历史消息..." />
+  }
 
   return (
     <>
@@ -96,7 +118,7 @@ const Chat = () => {
                 roles={roles}
                 style={{ flex: 1 }}
                 items={messages.map(({ id, message, status }) => {
-                  console.log('message', message)
+                  console.log('message', id, status, message)
 
                   return {
                     key: id,

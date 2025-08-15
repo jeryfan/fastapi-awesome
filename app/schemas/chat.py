@@ -5,12 +5,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class ChatMessage(BaseModel):
     role: str = Field(..., description="user | assistant | system")
-    content: str
+    content: Any
 
 
 class ChatCompletionRequest(BaseModel):
     conversation_id: Optional[str] = None
-    model: Optional[str] = "Qwen/Qwen3-8B"
+    # model: Optional[str] = "Qwen/Qwen3-8B"
+    # model: Optional[str] = "THUDM/GLM-4.1V-9B-Thinking"
+    model: Optional[str] = "Kwai-Kolors/Kolors"
     messages: List[ChatMessage]
     temperature: Optional[float] = 0.7
     top_p: Optional[float] = 1.0

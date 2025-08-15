@@ -18,3 +18,5 @@ class UploadFileOut(BaseModel):
     source_url: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+    file_url: Optional[str] = None

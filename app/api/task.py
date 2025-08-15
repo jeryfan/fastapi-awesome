@@ -38,8 +38,6 @@ async def list_task(
     list_in: TaskListIn = Depends(), db: AsyncSession = Depends(get_db)
 ):
 
-    skip = (list_in.page - 1) * list_in.size
-
     filters = {}
     if list_in.status:
         filters["status"] = list_in.status
@@ -48,7 +46,7 @@ async def list_task(
 
     data = await crud.task.query(
         db,
-        skip=skip,
+        page=list_in.page,
         limit=list_in.size,
         filters=filters,
         return_total=True,

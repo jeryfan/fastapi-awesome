@@ -1,0 +1,4 @@
+.no-focus-style .ant-sender:focus-within {
+  box-shadow: none !important;
+  border-color: inherit !important;
+}

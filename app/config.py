@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     STORAGE_LOCAL_PATH: str = "/workspace/www/storage"
     OPENDAL_ROOT: str = "/workspace/www/storage"
 
+    DOMAIN: str = "http://localhost/"
+
     class Config:
         env_file = ".env"
 

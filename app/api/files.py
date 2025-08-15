@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status, Form
 from pydantic import BaseModel, TypeAdapter
 
 from app.api.auth import get_current_user
+from app.config import settings
 from app.models.db import get_db
 from app.models.user import User
 from app.schemas.files import UploadFileOut
@@ -43,6 +44,7 @@ async def upload_file(
             source_url=source_url,
         )
         data = TypeAdapter(UploadFileOut).validate_python(file)
+        data.file_url = settings.DOMAIN + file.key
         return ApiResponse(data=data, code=status.HTTP_200_OK)
     except Exception as e:
         traceback.print_exc()

@@ -11,6 +11,8 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl
       - ./www/:/workspace/www/
     restart: unless-stopped
+    networks:
+      - one
   redis:
     image: redis
     container_name: redis

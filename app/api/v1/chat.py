@@ -110,6 +110,27 @@ async def stream_and_save_response(
     await message_crud.insert(db, obj_in=assistant_message_data)
 
 
+# aip/api/v1/chat.py 或者一个工具文件中
+
+from typing import List, Dict, Any, Union
+
+
+def _get_title_from_message_content(
+    content: Union[str, List[Dict[str, Any]]], length: int = 50
+) -> str:
+    """从消息的 content 字段智能提取文本作为标题"""
+    if isinstance(content, str):
+        return content[:length]
+
+    if isinstance(content, list):
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                text = item.get("text", "")
+                return text[:length]
+
+    return "新的对话"
+
+
 @router.post("/v1/chat/completions")
 async def api_chat_completions(
     request: ChatCompletionRequest,
@@ -123,7 +144,7 @@ async def api_chat_completions(
         new_conversation = Conversation(
             created_by=current_user.id,
             # current_model=request.model,
-            title=str(request.messages[0].content)[:10],
+            title=_get_title_from_message_content(request.messages),
         )
         db.add(new_conversation)
         await db.commit()
@@ -134,7 +155,7 @@ async def api_chat_completions(
     user_message_data = {
         "conversation_id": conversation_id,
         "role": RoleType.USER,
-        "content": last_user_message.model_dump()["content"],  # 支持多模态内容
+        "content": last_user_message.content,
         "created_by": current_user.id,
     }
     await message_crud.insert(db, obj_in=user_message_data)
@@ -152,7 +173,7 @@ async def api_chat_completions(
         assistant_message_data = {
             "conversation_id": conversation_id,
             "role": RoleType.ASSISTANT,
-            "content": assistant_message.model_dump()["content"],
+            "content": assistant_message.content,
             "model": response.model,
             "prompt_tokens": usage.prompt_tokens if usage else None,
             "completion_tokens": usage.completion_tokens if usage else None,

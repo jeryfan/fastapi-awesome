@@ -150,3 +150,9 @@ code {
   width: 100vw;
   height: 100vh;
 }
+
+.ant-sender:focus-within {
+  box-shadow: none !important;
+  border-color: inherit !important;
+  outline: none !important;
+}

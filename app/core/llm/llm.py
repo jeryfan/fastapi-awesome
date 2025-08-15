@@ -150,12 +150,11 @@ class OpenAIProvider(ModelProvider):
 
     async def generate(self, request: ChatCompletionRequest) -> ChatCompletionResponse:
         """调用OpenAI API获取完整响应 (非流式)"""
-        request.stream = False  # 确保stream为False
+        request.stream = False
         payload = self._prepare_payload(request)
 
         try:
             res = await self.client.chat.completions.create(**payload)
-            # 直接使用Pydantic模型进行转换，更安全、更简洁
             return ChatCompletionResponse.model_validate(res)
         except openai.APIError as e:
             raise HTTPException(status_code=e.status_code, detail=e.message)

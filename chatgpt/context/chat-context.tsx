@@ -33,11 +33,22 @@ type MessageContent = {
   image_url?: string;
 };
 
+type UploadResult = {
+  data: {
+    file_url: string;
+    id: string;
+    name: string;
+    size: number;
+    extension: string;
+    mime_type: string;
+  };
+};
+
 type UploadedFile = {
   name: string;
   type: string;
   size: number;
-  uploadResult?: unknown;
+  uploadResult?: UploadResult;
 };
 
 type MessageStatus = "sending" | "sent" | "error" | "streaming";
@@ -152,16 +163,55 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
 
   const sendMessage = useCallback(
     async (content: string | MessageContent[], files?: UploadedFile[]) => {
-      if (!content || isRequesting) return;
+      if ((!content || (typeof content === 'string' && !content.trim())) && (!files || files.length === 0)) return;
 
       setIsRequesting(true);
       setLastError(null);
 
       try {
+        // 构建OpenAI标准的消息内容
+        let messageContent: MessageContent[];
+        
+        if (files && files.length > 0) {
+          // 如果有文件，构建多模态消息
+          messageContent = [];
+          
+          // 添加文本内容（如果有）
+          if (content && typeof content === 'string' && content.trim()) {
+            messageContent.push({
+              type: "text",
+              text: content.trim()
+            });
+          }
+          
+          // 添加图片内容
+          files.forEach(file => {
+            if (file.type?.startsWith('image/') && file.uploadResult) {
+              const uploadResult = file.uploadResult;
+              if (uploadResult.data?.file_url) {
+                messageContent.push({
+                  type: "image",
+                  image_url: uploadResult.data.file_url
+                });
+              }
+            }
+          });
+        } else {
+          // 纯文本消息
+          if (typeof content === 'string') {
+            messageContent = [{
+              type: "text",
+              text: content
+            }];
+          } else {
+            messageContent = content;
+          }
+        }
+
         // 创建用户消息
         const userMessage: Message = {
           id: Date.now().toString(),
-          content,
+          content: messageContent,
           role: "user",
           status: "sent",
           timestamp: Date.now(),
@@ -177,7 +227,7 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
           messages: [
             {
               role: "user",
-              content,
+              content: messageContent,
             },
           ],
           stream: true,

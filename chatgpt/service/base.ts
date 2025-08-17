@@ -180,7 +180,7 @@ export const upload = (options: any, url?: string, searchParams?: string): Promi
 
     xhr.onreadystatechange = () => {
       if (xhr.readyState === 4) {
-        if (xhr.status === 201 || xhr.status === 200) resolve(xhr.response)
+        if (xhr.status === 201 || xhr.status === 200) resolve(xhr.response.data)
         else reject(xhr)
       }
     }

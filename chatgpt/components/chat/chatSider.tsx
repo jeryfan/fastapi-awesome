@@ -4,25 +4,39 @@ import { Button } from "../ui/button";
 import Image from "next/image";
 import { Edit, PanelLeft, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
+import { useContext } from "use-context-selector";
+import ChatContent from "./chatContent";
+import { useChatContext } from "@/context/chat-context";
 const ChatSider = () => {
   const router = useRouter();
 
-  const actions = [
-    {
-      name: "新聊天",
-      icon: <Edit className="w-4 h-4" />,
-      onClick: () => {
-        router.push("/chat");
+  const actions = useMemo(
+    () => [
+      {
+        name: "新聊天",
+        icon: <Edit className="w-4 h-4" />,
+        onClick: () => {
+          router.push("/chat");
+        },
       },
-    },
-    {
-      name: "搜索聊天",
-      icon: <Search className="w-4 h-4" />,
-      onClick: () => {
-        router.push("/chat");
+      {
+        name: "搜索聊天",
+        icon: <Search className="w-4 h-4" />,
+        onClick: () => {
+          router.push("/chat");
+        },
       },
-    },
-  ];
+    ],
+    []
+  );
+
+  const { conversationId, conversationList, isConversationListLoading } =
+    useChatContext();
+
+  const handleSelectConversation = (id: string) => {
+    router.push(`/chat/${id}`);
+  };
 
   return (
     <div className="relative w-[260px] h-full bg-elevated-secondary z-20 px-2 flex flex-col items-center text-sm">
@@ -59,6 +73,32 @@ const ChatSider = () => {
           {item.name}
         </div>
       ))}
+
+      {/* 会话列表，如果正在loading展示loading效果，否则展示数据 */}
+      {isConversationListLoading ? (
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="w-4 h-4 animate-spin rounded-full border-b-2 border-slate-500"></div>
+          <div className="w-4 h-4 animate-spin rounded-full border-b-2 border-slate-500"></div>
+        </div>
+      ) : (
+        <div className="w-full h-full">
+          {conversationList.map((item) => (
+            <div
+              key={item.id}
+              className={`w-full h-10 rounded-lg flex items-center gap-x-2 px-2 hover:bg-slate-100 cursor-pointer ${
+                conversationId === item.id ? "bg-slate-100" : ""
+              }`}
+              onClick={() => {
+                handleSelectConversation(item.id);
+              }}
+            >
+              <div className="w-full h-full flex items-center truncate">
+                {item.title}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

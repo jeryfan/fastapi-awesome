@@ -1,7 +1,7 @@
 "use client";
 
 import { FC, useState, useEffect, memo } from "react";
-import { Bot, User, CircleDashed, Clipboard, Check, Edit } from "lucide-react";
+import { Bot, User, CircleDashed, Clipboard, Check, Edit, RotateCcw, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -32,6 +32,11 @@ export interface ChatMessageProps {
   className?: string;
   avatar?: string;
   isStreaming?: boolean;
+  status?: "sending" | "sent" | "error" | "streaming";
+  error?: string;
+  messageId?: string;
+  onRetry?: (messageId: string) => void;
+  onDelete?: (messageId: string) => void;
 }
 
 // =======================================================================
@@ -61,26 +66,22 @@ const MemoizedMarkdown: FC<{ markdownText: string }> = memo(
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
-            code({ inline, className, children, ...props }) {
+            code(props) {
+              const { children, className, node, ...rest } = props;
               const match = /language-(\w+)/.exec(className || "");
-              const lang = match ? match[1] : "text";
-              if (!inline) {
+              const language = match ? match[1] : "";
+              const isInline = !className;
+              if (isInline) {
                 return (
-                  <CodeBlock language={lang}>
-                    {String(children).trimEnd()}
-                  </CodeBlock>
+                  <code className="bg-muted px-1 py-0.5 rounded text-sm" {...rest}>
+                    {children}
+                  </code>
                 );
               }
               return (
-                <code
-                  className={cn(
-                    "font-mono bg-muted px-1 py-0.5 rounded",
-                    className
-                  )}
-                  {...props}
-                >
-                  {children}
-                </code>
+                <CodeBlock language={language}>
+                  {String(children).trimEnd()}
+                </CodeBlock>
               );
             },
           }}
@@ -184,7 +185,22 @@ export const ChatMessage: FC<ChatMessageProps> = ({
   className,
   avatar,
   isStreaming = false,
+  status = "sent",
+  error,
+  messageId,
+  onRetry,
+  onDelete,
 }) => {
+  const hasContent = Array.isArray(content) ? content.length > 0 : !!content;
+  const isAssistant = role === "assistant";
+  const textContent =
+    typeof content === "string"
+      ? content
+      : content.find((part) => part.type === "text")?.text || "";
+  
+  // 始终调用 useTypewriter hook
+  const displayedText = useTypewriter(textContent, isAssistant && isStreaming);
+  
   if (role === "system") {
     return (
       <div className="flex items-center justify-center text-xs text-gray-400 italic my-4">
@@ -193,13 +209,6 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       </div>
     );
   }
-  const hasContent = Array.isArray(content) ? content.length > 0 : !!content;
-  const isAssistant = role === "assistant";
-  const textContent =
-    typeof content === "string"
-      ? content
-      : content.find((part) => part.type === "text")?.text || "";
-  const displayedText = useTypewriter(textContent, isAssistant && isStreaming);
 
   const AvatarComponent = (
     <Avatar className="w-8 h-8">
@@ -248,6 +257,34 @@ export const ChatMessage: FC<ChatMessageProps> = ({
     );
   };
 
+  const renderStatusIndicator = () => {
+    if (status === "error" && error) {
+      return (
+        <div className="flex items-center gap-2 mt-2 text-red-500 text-sm">
+          <span>发送失败: {error}</span>
+          {messageId && onRetry && (
+            <button
+              onClick={() => onRetry(messageId)}
+              className="flex items-center gap-1 px-2 py-1 bg-red-100 hover:bg-red-200 rounded text-red-600 transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" />
+              重试
+            </button>
+          )}
+        </div>
+      );
+    }
+    if (status === "sending") {
+      return (
+        <div className="flex items-center gap-2 mt-2 text-gray-500 text-sm">
+          <CircleDashed className="w-3 h-3 animate-spin" />
+          <span>发送中...</span>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div
       className={cn(
@@ -257,22 +294,43 @@ export const ChatMessage: FC<ChatMessageProps> = ({
       )}
     >
       {isAssistant && AvatarComponent}
-      <div
-        className={cn("group relative px-4 py-2 rounded-lg max-w-[80%]", {
-          "bg-muted rounded-br-none": !isAssistant,
-          "bg-muted rounded-bl-none": isAssistant,
-          "min-h-[40px] flex items-center":
-            isAssistant && !hasContent && !isStreaming,
-        })}
-      >
-        {isAssistant && !hasContent && !isStreaming ? (
-          <TypingIndicator />
-        ) : (
-          renderContent()
-        )}
-        {isAssistant && isStreaming && textContent === displayedText && (
-          <span className="animate-pulse">▍</span>
-        )}
+      <div className="flex flex-col max-w-[80%]">
+        <div
+          className={cn("group relative px-4 py-2 rounded-lg", {
+            "bg-muted rounded-br-none": !isAssistant,
+            "bg-muted rounded-bl-none": isAssistant,
+            "min-h-[40px] flex items-center":
+              isAssistant && !hasContent && !isStreaming,
+            "border-red-200 bg-red-50": status === "error",
+          })}
+        >
+          {isAssistant && !hasContent && !isStreaming ? (
+            <TypingIndicator />
+          ) : (
+            renderContent()
+          )}
+          {isAssistant && isStreaming && textContent === displayedText && (
+            <span className="animate-pulse">▍</span>
+          )}
+          
+          {/* 消息操作按钮 */}
+          {messageId && (onRetry || onDelete) && (
+            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1">
+                {onDelete && (
+                  <button
+                    onClick={() => onDelete(messageId)}
+                    className="p-1 hover:bg-gray-200 rounded text-gray-500 hover:text-red-500 transition-colors"
+                    title="删除消息"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        {renderStatusIndicator()}
       </div>
       {!isAssistant && AvatarComponent}
     </div>

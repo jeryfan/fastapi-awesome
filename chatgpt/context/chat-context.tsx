@@ -3,7 +3,11 @@
 import { useState, type FC, type ReactNode, useCallback, useMemo } from "react";
 import { createContext, useContextSelector } from "use-context-selector";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import { getConversationList, getConversationMessages } from "@/service/chat";
+import {
+  getConversationList,
+  getConversationMessages,
+  chatCompletion,
+} from "@/service/chat";
 import { useParams } from "next/navigation";
 
 type ConversationListResponse = {
@@ -29,10 +33,22 @@ type MessageContent = {
   image_url?: string;
 };
 
+type UploadedFile = {
+  name: string;
+  type: string;
+  size: number;
+  uploadResult?: unknown;
+};
+
+type MessageStatus = "sending" | "sent" | "error" | "streaming";
+
 type Message = {
   id: string;
   content: string | MessageContent[];
   role: "user" | "assistant" | "system";
+  status?: MessageStatus;
+  error?: string;
+  timestamp?: number;
 };
 
 export type ChatContextValue = {
@@ -62,7 +78,15 @@ export type ChatContextValue = {
   isRequesting: boolean;
   setIsRequesting: (isRequesting: boolean) => void;
 
-  sendMessage: (message: Message) => void;
+  sendMessage: (
+    content: string | MessageContent[],
+    files?: UploadedFile[]
+  ) => Promise<void>;
+  retryMessage: (messageId: string) => Promise<void>;
+  deleteMessage: (messageId: string) => void;
+  currentMessages: Message[];
+  lastError: string | null;
+  clearError: () => void;
 };
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -97,6 +121,8 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
   const [keyword, setKeyword] = useState<string>("");
 
   const [isRequesting, setIsRequesting] = useState<boolean>(false);
+  const [currentMessages, setCurrentMessages] = useState<Message[]>([]);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   const {
     data: conversationListData,
@@ -124,6 +150,160 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
     setIsSiderShow((prev) => !prev);
   }, []);
 
+  const sendMessage = useCallback(
+    async (content: string | MessageContent[], files?: UploadedFile[]) => {
+      if (!content || isRequesting) return;
+
+      setIsRequesting(true);
+      setLastError(null);
+
+      try {
+        // 创建用户消息
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          content,
+          role: "user",
+          status: "sent",
+          timestamp: Date.now(),
+        };
+
+        // 添加用户消息到当前消息列表
+        setCurrentMessages((prev) => [...prev, userMessage]);
+
+        // 准备请求数据
+        const requestData = {
+          conversation_id: conversationId,
+          model: "Qwen/Qwen3-8B",
+          messages: [
+            {
+              role: "user",
+              content,
+            },
+          ],
+          stream: true,
+        };
+
+        // 发送请求并处理SSE流
+        const response = await chatCompletion(
+          conversationId || "",
+          requestData
+        );
+
+        if (response.body) {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let assistantContent = "";
+
+          // 创建助手消息
+          const assistantMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            content: "",
+            role: "assistant",
+            status: "streaming",
+            timestamp: Date.now(),
+          };
+
+          setCurrentMessages((prev) => [...prev, assistantMessage]);
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split("\n");
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                const data = line.slice(6);
+                if (data === "[DONE]") {
+                  // 标记消息为已完成
+                  setCurrentMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessage.id
+                        ? { ...msg, status: "sent" }
+                        : msg
+                    )
+                  );
+                  break;
+                }
+
+                try {
+                  const parsed = JSON.parse(data);
+                  const delta = parsed.choices?.[0]?.delta;
+                  if (delta?.content) {
+                    assistantContent += delta.content;
+                    // 更新助手消息内容
+                    setCurrentMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessage.id
+                          ? { ...msg, content: assistantContent }
+                          : msg
+                      )
+                    );
+                  }
+                } catch (e) {
+                  // 忽略解析错误
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "发送消息失败";
+        console.error("发送消息失败:", error);
+        setLastError(errorMessage);
+
+        // 标记最后一条消息为错误状态
+        setCurrentMessages((prev) => {
+          const lastMessage = prev[prev.length - 1];
+          if (lastMessage && lastMessage.role === "assistant") {
+            return prev.map((msg, index) =>
+              index === prev.length - 1
+                ? { ...msg, status: "error", error: errorMessage }
+                : msg
+            );
+          }
+          return prev;
+        });
+      } finally {
+        setIsRequesting(false);
+      }
+    },
+    [conversationId, isRequesting]
+  );
+
+  // 重试消息
+  const retryMessage = useCallback(
+    async (messageId: string) => {
+      const message = currentMessages.find((msg) => msg.id === messageId);
+      if (!message || message.role !== "user") return;
+
+      // 移除错误的助手消息
+      setCurrentMessages((prev) => {
+        const messageIndex = prev.findIndex((msg) => msg.id === messageId);
+        if (messageIndex !== -1) {
+          return prev.slice(0, messageIndex + 1);
+        }
+        return prev;
+      });
+
+      // 重新发送消息
+      await sendMessage(message.content);
+    },
+    [currentMessages, sendMessage]
+  );
+
+  // 删除消息
+  const deleteMessage = useCallback((messageId: string) => {
+    setCurrentMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+  }, []);
+
+  // 清除错误
+  const clearError = useCallback(() => {
+    setLastError(null);
+  }, []);
+
   const contextValue = useMemo<ChatContextValue>(
     () => ({
       conversationId,
@@ -134,7 +314,7 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
       conversationListError,
       refetchConversationList,
 
-      messages: messagesData?.messages ?? [],
+      messages: messagesData?.messages ?? currentMessages,
       isMessagesLoading,
       messagesError,
 
@@ -151,6 +331,12 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
 
       isRequesting,
       setIsRequesting,
+      sendMessage,
+      retryMessage,
+      deleteMessage,
+      currentMessages,
+      lastError,
+      clearError,
     }),
     [
       conversationId,
@@ -168,6 +354,12 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
       limit,
       isRequesting,
       setIsRequesting,
+      sendMessage,
+      retryMessage,
+      deleteMessage,
+      currentMessages,
+      lastError,
+      clearError,
     ]
   );
 

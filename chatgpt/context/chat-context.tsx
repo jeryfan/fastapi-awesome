@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, type FC, type ReactNode, useCallback, useMemo } from "react";
+import {
+  useState,
+  type FC,
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useEffect,
+} from "react";
 import { createContext, useContextSelector } from "use-context-selector";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
@@ -89,10 +96,7 @@ export type ChatContextValue = {
   isRequesting: boolean;
   setIsRequesting: (isRequesting: boolean) => void;
 
-  sendMessage: (
-    content: string | MessageContent[],
-    files?: UploadedFile[]
-  ) => Promise<void>;
+  sendMessage: (content: string | MessageContent[]) => Promise<void>;
   retryMessage: (messageId: string) => Promise<void>;
   deleteMessage: (messageId: string) => void;
   currentMessages: Message[];
@@ -134,6 +138,7 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
   const [isRequesting, setIsRequesting] = useState<boolean>(false);
   const [currentMessages, setCurrentMessages] = useState<Message[]>([]);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [messages, setMessages] = useState([]);
 
   const {
     data: conversationListData,
@@ -157,83 +162,48 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
     enabled: !!conversationId,
   });
 
+  useEffect(() => {
+    if (messagesData?.messages?.length) {
+      setMessages(() => messagesData?.messages);
+    } else {
+      setMessages([]);
+    }
+  }, [messagesData?.messages]);
+
   const toggleSider = useCallback(() => {
     setIsSiderShow((prev) => !prev);
   }, []);
 
   const sendMessage = useCallback(
-    async (content: string | MessageContent[], files?: UploadedFile[]) => {
-      if ((!content || (typeof content === 'string' && !content.trim())) && (!files || files.length === 0)) return;
+    async (content: string | MessageContent[]) => {
+      if (!content || (typeof content === "string" && !content.trim())) return;
 
       setIsRequesting(true);
       setLastError(null);
 
       try {
-        // 构建OpenAI标准的消息内容
-        let messageContent: MessageContent[];
-        
-        if (files && files.length > 0) {
-          // 如果有文件，构建多模态消息
-          messageContent = [];
-          
-          // 添加文本内容（如果有）
-          if (content && typeof content === 'string' && content.trim()) {
-            messageContent.push({
-              type: "text",
-              text: content.trim()
-            });
-          }
-          
-          // 添加图片内容
-          files.forEach(file => {
-            if (file.type?.startsWith('image/') && file.uploadResult) {
-              const uploadResult = file.uploadResult;
-              if (uploadResult.data?.file_url) {
-                messageContent.push({
-                  type: "image",
-                  image_url: uploadResult.data.file_url
-                });
-              }
-            }
-          });
-        } else {
-          // 纯文本消息
-          if (typeof content === 'string') {
-            messageContent = [{
-              type: "text",
-              text: content
-            }];
-          } else {
-            messageContent = content;
-          }
-        }
-
-        // 创建用户消息
         const userMessage: Message = {
           id: Date.now().toString(),
-          content: messageContent,
+          content: content,
           role: "user",
           status: "sent",
           timestamp: Date.now(),
         };
 
-        // 添加用户消息到当前消息列表
-        setCurrentMessages((prev) => [...prev, userMessage]);
+        setMessages((prev) => [...prev, userMessage]);
 
-        // 准备请求数据
         const requestData = {
           conversation_id: conversationId,
           model: "Qwen/Qwen3-8B",
           messages: [
             {
               role: "user",
-              content: messageContent,
+              content: content,
             },
           ],
           stream: true,
         };
 
-        // 发送请求并处理SSE流
         const response = await chatCompletion(
           conversationId || "",
           requestData
@@ -253,7 +223,7 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
             timestamp: Date.now(),
           };
 
-          setCurrentMessages((prev) => [...prev, assistantMessage]);
+          setMessages((prev) => [...prev, assistantMessage]);
 
           while (true) {
             const { done, value } = await reader.read();
@@ -267,7 +237,7 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
                 const data = line.slice(6);
                 if (data === "[DONE]") {
                   // 标记消息为已完成
-                  setCurrentMessages((prev) =>
+                  setMessages((prev) =>
                     prev.map((msg) =>
                       msg.id === assistantMessage.id
                         ? { ...msg, status: "sent" }
@@ -283,7 +253,7 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
                   if (delta?.content) {
                     assistantContent += delta.content;
                     // 更新助手消息内容
-                    setCurrentMessages((prev) =>
+                    setMessages((prev) =>
                       prev.map((msg) =>
                         msg.id === assistantMessage.id
                           ? { ...msg, content: assistantContent }
@@ -364,7 +334,7 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
       conversationListError,
       refetchConversationList,
 
-      messages: messagesData?.messages ?? currentMessages,
+      messages: messages,
       isMessagesLoading,
       messagesError,
 
@@ -394,7 +364,7 @@ export const ChatContextProvider: FC<ChatContextProviderProps> = ({
       isConversationListLoading,
       conversationListError,
       refetchConversationList,
-      messagesData,
+      messages,
       isMessagesLoading,
       messagesError,
       isSiderShow,
